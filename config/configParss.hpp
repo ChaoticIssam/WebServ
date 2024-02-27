@@ -19,8 +19,14 @@ class   configParss{
         void        setPort(std::string port);
         void        setHost(std::string host);
         void        setServerName(std::string serverName);
+        void        seterrorPagenum(int errorPagenum);
+        void        seterrorPage(std::string errorPage);
         std::string getPort(void);
         std::string getHost(void);
+        int         geterrorPagenum(void);
+        std::string geterrorPage(void);
+        static void  funcP(void){};
 };
+int     myStoi(std::string line);
 
 #endif

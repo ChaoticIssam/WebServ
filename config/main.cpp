@@ -9,7 +9,7 @@ int main(){
         int Index = 0;
         while (ifile.good()){
             ifile >> file;
-            std::cout << file << std::endl;
+            // std::cout << file << std::endl;
             if (file == "server{" && Index == 0){
                 Index++;
                 continue;
@@ -47,9 +47,8 @@ int main(){
                 continue;
             }
             else if (Index == 8){
-                if (isdigit(stoi(file.c_str()))){
-                    std::cout << "hello" << std::endl;
-                }
+                    obj.seterrorPagenum(myStoi(file));
+                    std::cout << "page error code assingned and it's -> " << obj.geterrorPagenum() << std::endl;
             }
             // else{
             //     std::cout << "Error: in config file." << std::endl;
