@@ -4,16 +4,20 @@
 #include <iostream>
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 #include <string>
 #include <cctype>
+#include <map>
 
 class   configParss{
     std::string _port;
     std::string _host;
     std::string _serverName;
-    int         _errorPagenum;
-    std::string _errorPage;
+    std::string _errorScoop;
     public:
+        int         _errorPagenum;
+        std::string _errorPage;
+        std::map<int, std::string>  errorHolder;
         std::string readConfigFile(void);
         void        fillInfo(std::string file);
         void        setPort(std::string port);
@@ -28,5 +32,6 @@ class   configParss{
         static void  funcP(void){};
 };
 int     myStoi(std::string line);
+void    getErrors(std::string line);
 
 #endif

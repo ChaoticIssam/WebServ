@@ -9,7 +9,7 @@ int main(){
         int Index = 0;
         while (ifile.good()){
             ifile >> file;
-            // std::cout << file << std::endl;
+            std::cout << file << std::endl;
             if (file == "server{" && Index == 0){
                 Index++;
                 continue;
@@ -42,14 +42,25 @@ int main(){
                 Index++;
                 continue;
             }
-            else if (file == "error_page:" && Index == 7){
+            else if (file == "error_page:"){
                 Index++;
+                ifile >> obj._errorPagenum;
+                if (!ifile.good()){
+                    std::cout << "Error: something went wrong with the error page config." << std::endl;
+                    exit(1);
+                }
+                ifile >> obj._errorPage;
+                if (!ifile.good()){
+                    std::cout << "Error: something went wrong with the error page config." << std::endl;
+                    exit(1);
+                }
+                obj.errorHolder[obj._errorPagenum] = obj._errorPage;
                 continue;
             }
-            else if (Index == 8){
-                    obj.seterrorPagenum(myStoi(file));
-                    std::cout << "page error code assingned and it's -> " << obj.geterrorPagenum() << std::endl;
-            }
+            // else if (Index >= 8){
+                
+            //         // std::cout << "page error code assingned and it's -> " << obj.geterrorPagenum() << std::endl;
+            // }
             // else{
             //     std::cout << "Error: in config file." << std::endl;
             //     return 1;
