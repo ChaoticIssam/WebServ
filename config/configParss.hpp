@@ -8,13 +8,15 @@
 #include <string>
 #include <cctype>
 #include <map>
+#include <vector>
 
 class   configParss{
     std::string _port;
     std::string _host;
-    std::string _serverName;
-    std::string _errorScoop;
+    // std::string _errorScoop;
     public:
+        std::string _servernameTMP;
+        std::vector<std::string> _servernamesHolder;
         int         _errorPagenum;
         std::string _errorPage;
         std::map<int, std::string>  errorHolder;

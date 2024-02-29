@@ -7,9 +7,9 @@ void    configParss::setPort(std::string port){
 void    configParss::setHost(std::string host){
     _host = host;
 }
-void    configParss::setServerName(std::string serverName){
-    _serverName = serverName;
-}
+// void    configParss::setServerName(std::string serverName){
+//     _serverName = serverName;
+// }
 void    configParss::seterrorPagenum(int errorPagenum){
     _errorPagenum = errorPagenum;
 }
