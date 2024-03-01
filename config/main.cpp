@@ -1,8 +1,10 @@
 #include "configParss.hpp"
 
+std::vector<configParss> _srv;
+
 int main(){
     configParss obj;
-    int i = 0;
+    location    locationScoop;
     std::ifstream ifile;
     ifile.open("default.config");
     std::string file;
@@ -36,45 +38,55 @@ int main(){
             }
             else if (file == "server_name:"){
                 ifile >> obj._servernameTMP;
-                if (!ifile.good()){
-                    std::cout << "Error: something went wrong with the server name insert." << std::endl;
-                    exit(1);
-                }
+                if (!ifile.good())
+                    throw std::runtime_error("Error: something went wrong with the server name insert.");
                 obj._servernamesHolder.push_back(obj._servernameTMP);
-                std::cout << "server name ra9m " << i << " ->>>" << obj._servernamesHolder[i] << std::endl;
-                i++;
+                continue;
             }
             else if (file == "error_page:"){
                 // Index++;
                 ifile >> obj._errorPagenum;
-                if (!ifile.good()){
-                    std::cout << "Error: something went wrong with the error page config." << std::endl;
-                    exit(1);
-                }
+                if (!ifile.good())
+                    throw   std::runtime_error("Error: something went wrong with the error page config.");
                 ifile >> obj._errorPage;
-                if (!ifile.good()){
-                    std::cout << "Error: something went wrong with the error page config." << std::endl;
-                    exit(1);
-                }
+                if (!ifile.good())
+                    throw   std::runtime_error("Error: something went wrong with the error page config.");
                 obj.errorHolder[obj._errorPagenum] = obj._errorPage;
-                std::cout << "wewe 1 ->>>>>" << obj.errorHolder[404] << std::endl;
-                std::cout << "wewe 2 ->>>>>" << obj.errorHolder[420] << std::endl;
-                std::cout << "wewe 3 ->>>>>" << obj.errorHolder[410] << std::endl;
                 continue;
             }
-            // else if (Index >= 8){
-                
-            //         // std::cout << "page error code assingned and it's -> " << obj.geterrorPagenum() << std::endl;
-            // }
+            else if (file == "location:"){
+                ifile >> locationScoop._locationPath;
+                if (!ifile.good())
+                    throw   std::runtime_error("Error: something went wrong with the location scoop config.");
+                ifile >> file;
+            }
+            else if (file == "methods:") {
+                while (file != "autoIndex:"){
+                    ifile >> file;
+                    std::cout << "->>" << file << std::endl;
+                    if (file == "post"){
+                        locationScoop._postCheck = true;
+                        
+                    }
+                    else if (file == "get")
+                        locationScoop._getCheck = true;
+                    else if (file == "delete")
+                        locationScoop._deleteCheck = true;
+                    else
+                        throw std::runtime_error("Error:\n undefined method.");
+                }
+                std::cout <<"post is : " << locationScoop._postCheck << "delete is :" << locationScoop._deleteCheck << "get is : " << locationScoop._getCheck;
+            }
             else{
-                throw std::runtime_error("error in config");
+                throw std::runtime_error("Error: something went wrong with the location scoop config.");
             }
         }
-    }}
+        // _srv.push_back(obj);
+    }
+    }
     catch(std::runtime_error &e){
-            std::cout << "Error: in config file." << std::endl;
-            return -1;
-        
+            std::cout << "Error:\n something went wrong during reading the configFile." << std::endl;
+            return -1;   
     }
     // std::cout << obj.getHost() << std::endl;
     // std::cout << obj.getPort() << std::endl;

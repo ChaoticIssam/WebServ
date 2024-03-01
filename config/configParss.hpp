@@ -33,7 +33,17 @@ class   configParss{
         std::string geterrorPage(void);
         static void  funcP(void){};
 };
+class   location{
+    public:
+    std::string _locationPath;
+    bool    _postCheck;
+    bool    _getCheck;
+    bool    _deleteCheck;
+
+};
+extern std::vector<configParss> _srv;
 int     myStoi(std::string line);
 void    getErrors(std::string line);
+
 
 #endif
