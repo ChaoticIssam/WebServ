@@ -39,7 +39,10 @@ class   location{
     bool    _postCheck;
     bool    _getCheck;
     bool    _deleteCheck;
-
+    bool    _autoIndex;
+    std::string _Index;
+    std::string _return;
+    std::string _uploadStore;
 };
 extern std::vector<configParss> _srv;
 int     myStoi(std::string line);
