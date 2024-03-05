@@ -10,6 +10,7 @@ int main(){
     int lock_1 = 1;
     int lock_2 = 1;
     int lock_3 = 1;
+    int counts = 0;
     ifile.open("default.config");
     std::string file;
     try{
@@ -118,8 +119,10 @@ int main(){
                 lock_3 = 0;
                 continue;
             }
-            else if (file == "}" || file == "{")
+            else if (file == "}"){
+                counts++;
                 continue ;
+            }
             else
                 throw std::runtime_error("Error:");
             if (lock_0 == 1)
@@ -131,7 +134,8 @@ int main(){
         }
         // _srv.push_back(obj);
     }
-        if (obj.getPort().empty() || obj.getHost().empty())
+        if (obj.getPort().empty() || obj.getHost().empty() ||
+             locationScoop._locationPath.empty() || counts != 2)
             throw std::runtime_error("Error:");
     }
     catch(std::runtime_error &e){
@@ -141,9 +145,9 @@ int main(){
     std::cout << "port -> " << obj.getPort() << std::endl;
     std::cout << "host -> " << obj.getHost() << std::endl;
     std::cout << "server name -> " << obj._servernamesHolder[0] << std::endl;
-    std::cout << "server name -> " << obj._servernamesHolder[1] << std::endl;
-    std::cout << "server name -> " << obj._servernamesHolder[2] << std::endl;
-    std::cout << "server error -> " << obj.errorHolder[404] << std::endl;
+    // std::cout << "server name -> " << obj._servernamesHolder[1] << std::endl;
+    // std::cout << "server name -> " << obj._servernamesHolder[2] << std::endl;
+    // std::cout << "server error -> " << obj.errorHolder[404] << std::endl;
     std::cout << "server error -> " << obj.errorHolder[410] << std::endl;
     std::cout << "server error -> " << obj.errorHolder[420] << std::endl;
     std::cout << "location path -> " << locationScoop._locationPath << std::endl;
@@ -154,6 +158,4 @@ int main(){
     std::cout << "Index -> " << locationScoop._Index << std::endl;
     std::cout << "return -> " << locationScoop._return << std::endl;
     std::cout << "uploadStore -> " << locationScoop._uploadStore << std::endl;
-    // std::cout << obj.getHost() << std::endl;
-    // std::cout << obj.getPort() << std::endl;
 }
