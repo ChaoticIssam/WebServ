@@ -10,6 +10,17 @@
 #include <map>
 #include <vector>
 
+class   location{
+    public:
+    std::string _locationPath;
+    bool    _postCheck;
+    bool    _getCheck;
+    bool    _deleteCheck;
+    bool    _autoIndex;
+    std::string _Index;
+    std::string _return;
+    std::string _uploadStore;
+};
 class   configParss{
     std::string _port;
     std::string _host;
@@ -31,18 +42,7 @@ class   configParss{
         std::string getHost(void);
         int         geterrorPagenum(void);
         std::string geterrorPage(void);
-        static void  funcP(void){};
-};
-class   location{
-    public:
-    std::string _locationPath;
-    bool    _postCheck;
-    bool    _getCheck;
-    bool    _deleteCheck;
-    bool    _autoIndex;
-    std::string _Index;
-    std::string _return;
-    std::string _uploadStore;
+        std::vector<location> _locationScoops;
 };
 extern std::vector<configParss> _srv;
 int     myStoi(std::string line);
