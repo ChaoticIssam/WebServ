@@ -77,7 +77,6 @@ int main(){
             else if (file == "location:"){
                 if (Index == 5){
                     obj._servernameTMP = obj.getHost();
-					std::cout << "    								//server name -> " << obj._servernameTMP << std::endl;
                     obj._servernamesHolder.push_back(obj._servernameTMP);
                 }
                 Index++;
@@ -92,7 +91,7 @@ int main(){
                 ifile >> locationScoop._locationPath;
                     if (!ifile.good())
                         throw   std::runtime_error("Error: something went wrong with the location scoop config.");
-                std::cout << "										//location path -> " << locationScoop._locationPath << std::endl;
+                
                 ifile >> file;
                 if (file == "{"){
                     while (!file.empty() && file != "}"){
@@ -146,6 +145,28 @@ int main(){
                         lock_3 = 0;
                         continue;
                     }
+                    else if (file == "cgiStatus:"){
+                         Index++;
+                        ifile >> file;
+                        if (file == "on")
+                            locationScoop._cgiStatus = true;
+                        else
+                            locationScoop._cgiStatus = false;
+                        // lock_0 = 0;
+                        Index++;
+                        continue;
+                    }
+                    else if (file == "cgi_path:"){
+                        Index++;
+                        ifile >> locationScoop._cgiExtensionHolder;
+                        if (!ifile.good())
+                            throw   std::runtime_error("Error: something went wrong with the cgi path config.");
+                        ifile >> locationScoop._cgiPathHolder;
+                        if (!ifile.good())
+                            throw   std::runtime_error("Error: something went wrong with the cgi path config.");
+                        locationScoop._cgiPath[locationScoop._cgiExtensionHolder] = locationScoop._cgiPathHolder;
+                        continue;
+                    }
                     else if (file == "}"){
                         obj._locationScoops.push_back(locationScoop);
                         break;
@@ -181,42 +202,34 @@ int main(){
             std::cout << "Error:\n something went wrong during reading the configFile." << std::endl;
             return -1;   
     }
-	if (!_srv.empty())
-		_srv.pop_back();
-	if (!obj._locationScoops.empty()){
-		std::cout << "**********poping***********" << std::endl;	
-		obj._locationScoops.pop_back();
-		obj._locationScoops.pop_back();
-	}
     std::cout << "port -> " << _srv[0].getPort() << std::endl;
-    std::cout << "port -> " << _srv[1].getPort() << std::endl;
-    // std::cout << "host -> " << _srv[0].getHost() << std::endl;
+    // std::cout << "port -> " << _srv[1].getPort() << std::endl;
+    std::cout << "host -> " << _srv[0].getHost() << std::endl;
     // std::cout << "host -> " << _srv[1].getHost() << std::endl;
-    // std::cout << "server name -> " << _srv[0]._servernamesHolder[0] << std::endl;
+    std::cout << "server name -> " << _srv[0]._servernamesHolder[0] << std::endl;
     // std::cout << "server name -> " << _srv[1]._servernamesHolder[1] << std::endl;
     // std::cout << "server name -> " << obj._servernamesHolder[1] << std::endl;
     // std::cout << "server name -> " << obj._servernamesHolder[2] << std::endl;
     // std::cout << "server error -> " << obj.errorHolder[404] << std::endl;
-    // std::cout << "server error 0 -> " << obj.errorHolder[420] << std::endl;
-    // std::cout << "server error 1 -> " << obj.errorHolder[420] << std::endl;
-    // std::cout << "location path 0 -> " << obj._locationScoops[0]._locationPath << std::endl;
-    // std::cout << "location path 1 -> " << obj._locationScoops[1]._locationPath << std::endl;
-	std::cout << "post check 0 -> " << obj._locationScoops[0]._postCheck << std::endl;
-	std::cout << "post check 1 -> " << obj._locationScoops[1]._postCheck << std::endl;
-	std::cout << "post check 1 -> " << obj._locationScoops[2]._postCheck << std::endl;
+    std::cout << "server error 0 -> " << obj.errorHolder[420] << std::endl;
+    std::cout << "server error 1 -> " << obj.errorHolder[420] << std::endl;
+    std::cout << "location path 0 -> " << obj._locationScoops[0]._locationPath << std::endl;
+    std::cout << "location path 1 -> " << obj._locationScoops[1]._locationPath << std::endl;
+    // std::cout << "post check 0 -> " << obj._locationScoops[0]._postCheck << std::endl;
+    // std::cout << "post check 1 -> " << obj._locationScoops[1]._postCheck << std::endl;
+    std::cout << "cgiPath 0 -> " << obj._locationScoops[1]._cgiPath[".py"] << std::endl;
+    std::cout << "post check 0 -> " << obj._locationScoops[0]._postCheck << std::endl;
+    std::cout << "post check 1 -> " << obj._locationScoops[1]._postCheck << std::endl;
     std::cout << "get check 0 -> " << obj._locationScoops[0]._getCheck << std::endl;
     std::cout << "get check 1 -> " << obj._locationScoops[1]._getCheck << std::endl;
-    std::cout << "get check 1 -> " << obj._locationScoops[2]._getCheck << std::endl;
     std::cout << "delete check 0 -> " << obj._locationScoops[0]._deleteCheck << std::endl;
     std::cout << "delete check 1 -> " << obj._locationScoops[1]._deleteCheck << std::endl;
-    std::cout << "delete check 1 -> " << obj._locationScoops[2]._deleteCheck << std::endl;
-    // std::cout << "autoIndex 0 -> " << obj._locationScoops[0]._autoIndex << std::endl;
-    // std::cout << "autoIndex 1 -> " << obj._locationScoops[1]._autoIndex << std::endl;
-    // std::cout << "Index 0 -> " << obj._locationScoops[0]._Index << std::endl;
-    // std::cout << "Index 1 -> " << obj._locationScoops[1]._Index << std::endl;
-    // std::cout << "return 0 -> " << obj._locationScoops[0]._return << std::endl;
-    // std::cout << "return 1 -> " << obj._locationScoops[1]._return << std::endl;
-    // std::cout << "return 1 -> " << obj._locationScoops[2]._return << std::endl;
-    // std::cout << "uploadStore 0 -> " << obj._locationScoops[0]._uploadStore << std::endl;
-    // std::cout << "uploadStore 1 -> " << obj._locationScoops[1]._uploadStore << std::endl;
+    std::cout << "autoIndex 0 -> " << obj._locationScoops[0]._autoIndex << std::endl;
+    std::cout << "autoIndex 1 -> " << obj._locationScoops[1]._autoIndex << std::endl;
+    std::cout << "Index 0 -> " << obj._locationScoops[0]._Index << std::endl;
+    std::cout << "Index 1 -> " << obj._locationScoops[1]._Index << std::endl;
+    std::cout << "return 0 -> " << obj._locationScoops[0]._return << std::endl;
+    std::cout << "return 1 -> " << obj._locationScoops[1]._return << std::endl;
+    std::cout << "uploadStore 0 -> " << obj._locationScoops[0]._uploadStore << std::endl;
+    std::cout << "uploadStore 1 -> " << obj._locationScoops[1]._uploadStore << std::endl;
 }

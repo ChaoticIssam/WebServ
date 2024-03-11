@@ -17,6 +17,10 @@ class   location{
     bool    _getCheck;
     bool    _deleteCheck;
     bool    _autoIndex;
+    bool    _cgiStatus;
+    std::string _cgiExtensionHolder;
+    std::string _cgiPathHolder;
+    std::map<std::string, std::string> _cgiPath;
     std::string _Index;
     std::string _return;
     std::string _uploadStore;
