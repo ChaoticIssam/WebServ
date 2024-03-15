@@ -8,9 +8,7 @@ int main(){
     std::ifstream ifile;
     int lock_4 = 1;
     int lock_0 = 1;
-    int lock_1 = 1;
     int lock_2 = 1;
-    int lock_3 = 1;
     ifile.open("default.config");
     std::string file;
     try{
@@ -18,7 +16,6 @@ int main(){
         int Index = 0;
         while (ifile.good()){
             ifile >> file;
-            std::cout << file << std::endl;
             if (file == "server{" && Index == 0){
                 Index++;
                 lock_4 = 0;
@@ -53,12 +50,6 @@ int main(){
                 obj._servernamesHolder.push_back(obj._servernameTMP);
                 continue;
             }
-            // else if ((Index == 5 && file == "error_page:") || (Index == 5 && file == "location:")){
-            //     std::cout << "file >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << file << std::endl;
-            //     Index++;
-            //     obj._servernameTMP = obj.getHost();
-            //     obj._servernamesHolder.push_back(obj._servernameTMP);
-            // }
             else if (file == "error_page:"){
                 if (Index == 5){
                     obj._servernameTMP = obj.getHost();
@@ -96,11 +87,9 @@ int main(){
                 if (file == "{"){
                     while (!file.empty() && file != "}"){
                     ifile >> file;
-                         std::cout << "->>" << file << std::endl;
                     if (file == "method:") {
                         Index++;
                         ifile >> file;                
-                         std::cout << "->>" << file << std::endl;
                         if (file == "post"){
                             locationScoop._postCheck = true;
                         continue;
@@ -130,7 +119,6 @@ int main(){
                     else if (file == "Index:"){
                         Index++;
                         ifile >> locationScoop._Index;
-                        lock_1 = 0;
                         continue;
                     }
                     else if (file == "return:"){
@@ -142,7 +130,6 @@ int main(){
                     else if (file == "upload_store:"){
                         Index++;
                         ifile >> locationScoop._uploadStore;
-                        lock_3 = 0;
                         continue;
                     }
                     else if (file == "cgiStatus:"){
@@ -152,7 +139,6 @@ int main(){
                             locationScoop._cgiStatus = true;
                         else
                             locationScoop._cgiStatus = false;
-                        // lock_0 = 0;
                         Index++;
                         continue;
                     }
@@ -174,7 +160,6 @@ int main(){
                     else
                         throw std::runtime_error("Error:");
                 }
-                // continue;
                 }
             }
             else if (file == "}" && lock_4 == 0){
@@ -192,8 +177,6 @@ int main(){
             if (lock_2 == 1)
                 locationScoop._return = "";
         }
-
-        // _srv.push_back(obj);
     }
         if (obj.getPort().empty() || obj.getHost().empty())
             throw std::runtime_error("Error:");
@@ -202,34 +185,4 @@ int main(){
             std::cout << "Error:\n something went wrong during reading the configFile." << std::endl;
             return -1;   
     }
-    std::cout << "port -> " << _srv[0].getPort() << std::endl;
-    // std::cout << "port -> " << _srv[1].getPort() << std::endl;
-    std::cout << "host -> " << _srv[0].getHost() << std::endl;
-    // std::cout << "host -> " << _srv[1].getHost() << std::endl;
-    std::cout << "server name -> " << _srv[0]._servernamesHolder[0] << std::endl;
-    // std::cout << "server name -> " << _srv[1]._servernamesHolder[1] << std::endl;
-    // std::cout << "server name -> " << obj._servernamesHolder[1] << std::endl;
-    // std::cout << "server name -> " << obj._servernamesHolder[2] << std::endl;
-    // std::cout << "server error -> " << obj.errorHolder[404] << std::endl;
-    std::cout << "server error 0 -> " << obj.errorHolder[420] << std::endl;
-    std::cout << "server error 1 -> " << obj.errorHolder[420] << std::endl;
-    std::cout << "location path 0 -> " << obj._locationScoops[0]._locationPath << std::endl;
-    std::cout << "location path 1 -> " << obj._locationScoops[1]._locationPath << std::endl;
-    // std::cout << "post check 0 -> " << obj._locationScoops[0]._postCheck << std::endl;
-    // std::cout << "post check 1 -> " << obj._locationScoops[1]._postCheck << std::endl;
-    std::cout << "cgiPath 0 -> " << obj._locationScoops[1]._cgiPath[".py"] << std::endl;
-    std::cout << "post check 0 -> " << obj._locationScoops[0]._postCheck << std::endl;
-    std::cout << "post check 1 -> " << obj._locationScoops[1]._postCheck << std::endl;
-    std::cout << "get check 0 -> " << obj._locationScoops[0]._getCheck << std::endl;
-    std::cout << "get check 1 -> " << obj._locationScoops[1]._getCheck << std::endl;
-    std::cout << "delete check 0 -> " << obj._locationScoops[0]._deleteCheck << std::endl;
-    std::cout << "delete check 1 -> " << obj._locationScoops[1]._deleteCheck << std::endl;
-    std::cout << "autoIndex 0 -> " << obj._locationScoops[0]._autoIndex << std::endl;
-    std::cout << "autoIndex 1 -> " << obj._locationScoops[1]._autoIndex << std::endl;
-    std::cout << "Index 0 -> " << obj._locationScoops[0]._Index << std::endl;
-    std::cout << "Index 1 -> " << obj._locationScoops[1]._Index << std::endl;
-    std::cout << "return 0 -> " << obj._locationScoops[0]._return << std::endl;
-    std::cout << "return 1 -> " << obj._locationScoops[1]._return << std::endl;
-    std::cout << "uploadStore 0 -> " << obj._locationScoops[0]._uploadStore << std::endl;
-    std::cout << "uploadStore 1 -> " << obj._locationScoops[1]._uploadStore << std::endl;
 }
