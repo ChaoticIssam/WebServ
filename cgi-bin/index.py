@@ -1,0 +1,10 @@
+
+print("<!DOCTYPE html>")
+print("<html>")
+print("<head>")
+print("<title>Hello, World!</title>")
+print("</head>")
+print("<body>")
+print("<h1>Hello, World!</h1>")
+print("</body>")
+print("</html>")

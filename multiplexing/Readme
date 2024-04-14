@@ -1,0 +1,46 @@
+//first of all i create a temporer.events = EPOLLIN;
+//     temporer.data.fd = sosocket;
+//     epoll_ctl(epool_fd,n epoll using epoll_create(1);
+// and after that i get a temporer its type is struct epoll_event 
+//then I create a socket using socket function   (family, type, protocole set to 0 to let the program choose);
+//
+
+
+// multiplexing ****** Done..
+//Post :
+//      -binary : Done..
+//      -chanked : on progress .
+//request : the last part .
+
+
+
+
+// header exemple : 
+        // Headers : Transfer-Encoding: chanked
+        // User-Agent: PostmanRuntime/7.36.3
+        // Accept: */*
+        // Postman-Token: 032680e5-4d0c-482a-b979-d01f5189f26f
+        // Host: localhost:8080
+        // Accept-Encoding: gzip, deflate, br
+        // Connection: keep-alive
+        // Content-Length: 4098
+        // Content-Type: image/png
+
+// Transfer-Encoding: chunked
+// User-Agent: PostmanRuntime/7.34.0
+// Accept: */*
+// Postman-Token: 3efb8b9e-46c3-4527-81ad-51cb6e0cbb85
+// Host: localhost:8080
+// Accept-Encoding: gzip, deflate, br
+// Connection: keep-alive
+// Content-Type: application/octet-stream
+
+// struct ifaddrs {
+//     struct ifaddrs *ifa_next;     /* Pointer to the next structure in the linked list */
+//     char           *ifa_name;     /* Interface name */
+//     unsigned int    ifa_flags;    /* Interface flags (e.g., UP, RUNNING) */
+//     struct sockaddr *ifa_addr;    /* Interface address */
+//     struct sockaddr *ifa_netmask; /* Interface netmask */
+//     struct sockaddr *ifa_dstaddr; /* Interface destination address */
+//     void            *ifa_data;    /* Interface-specific data */
+// };
