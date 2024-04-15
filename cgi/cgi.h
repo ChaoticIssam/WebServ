@@ -22,10 +22,10 @@ private:
     std::string                         cgi_path;
     std::string                         extension;
     bool                         running;
-    clock_t                             start;
+    // clock_t                             start;
     pid_t                               pid;
     int                                 status;
-    int                                 file_length;
+    // int                                 file_length;
     std::string                         cgi_body;
     // int                                 pipe_fd[2];
 

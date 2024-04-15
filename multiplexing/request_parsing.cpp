@@ -222,6 +222,7 @@ std::string cgi_body_getter(std::string file, std::map<int, Webserve>&multi_fd, 
 void create_response(std::map<int, Webserve>&multi_fd, std::string message, std::string status, Helpers *help) {
 	//check if the reponse is from a cgi program
 	std::string body;
+	GET	GET_M;
 	int fd = help->events[help->i].data.fd;
 	if (strcmp(multi_fd[fd].content_body.c_str(), "NULL") != 0) {
 	std::cout << "here is the bodyyyyyyy \n";
@@ -241,10 +242,12 @@ void create_response(std::map<int, Webserve>&multi_fd, std::string message, std:
 	}
 	std::cout << "here is the body: " << body << std::endl;
 		multi_fd[fd].response += multi_fd[fd].HTTP_version + " " + status + " ok \r\n";
+		if (multi_fd[fd].HTTP_method == "GET")
+			multi_fd[fd].response += "Content-Type: " + GET_M._contentType + "\r\n";
 		multi_fd[fd].response += "Content-Type: text/html\r\n";
 		// multi_fd[fd].response += "Content-Length: " + size_tToString((body).size()) + "\r\n";
 		multi_fd[fd].response += "Content-Length: " + size_tToString(body.size()) + "\r\n";
-		multi_fd[fd].response += "\r\n"; // Empty line to separate headers from body
+		multi_fd[fd].response += "\r\n\r\n"; // Empty line to separate headers from body
 		multi_fd[fd].response += body;
 	std::cout << "=======\nHere is the response : " << multi_fd[fd].response << std::endl;
 	if(send(fd, multi_fd[fd].response.c_str(), multi_fd[fd].response.size(), 0) == -1)
@@ -285,9 +288,12 @@ void    pars_request(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 				get_Body_part(multi_fd, help, buff);
 		}
 		// //hna ghanzid get method dyali//
-		// else if (multi_fd[fd].HTTP_method == "DELETE") {
-		//     delete_method(multi_fd, fd, help);
-		// }
+		else if (multi_fd[fd].HTTP_method == "GET") {
+			getMethod(multi_fd, fd, help);
+		}
+		else if (multi_fd[fd].HTTP_method == "DELETE") {
+		    delete_method(multi_fd, fd, help);
+		}
 		cgi_handler(multi_fd, fd, help);
 		// std::cout << "here is the content length: " << multi_fd[fd].content_l << std::endl;
 		throw ResponseException("200", "OK");

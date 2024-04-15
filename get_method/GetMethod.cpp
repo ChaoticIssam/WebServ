@@ -1,5 +1,7 @@
 #include "GetMethod.hpp"
 
+GET::GET(){}
+
 bool checkLocation(std::string &path)   {
     
     if (access(path.c_str(), F_OK) == 0)
@@ -20,7 +22,7 @@ bool checkLocation(std::string &path)   {
     }
 }
 
-void	Response::findFiles(){
+void	GET::findFiles(){
 	DIR *dir;
 	struct dirent *d;
 	struct stat s;
@@ -29,15 +31,15 @@ void	Response::findFiles(){
 	std::string file, name, path;
 	unsigned char type;
 	file = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of ";
-	file += _old_uri;
+	file += _oldURI;
 	file += "</title>\n</head>\n<body>\n<h1>Index of ";
-	file += _old_uri + "</h1>\n<hr>\n<pre>\n<table>\n<tbody>\n";
-	dir = opendir(_uri.c_str());
+	file += _oldURI + "</h1>\n<hr>\n<pre>\n<table>\n<tbody>\n";
+	dir = opendir(_URI.c_str());
 	if (dir){
 		d = readdir(dir);
 		while (d){
 			name = d->d_name;
-			if (name = "." || (name != ".." && name[0] == ".")){
+			if (name == "." || (name != ".." && name[0] == '.')){
 				d = readdir(dir);
 				continue;
 			}
@@ -48,7 +50,7 @@ void	Response::findFiles(){
 		for(std::map<std::string, unsigned char>::iterator it = files.begin(); it != files.end(); it++) {
             name = it->first;
             type = it->second;
-			path = _uri + "/" + name;
+			path = _URI + "/" + name;
 			stat(path.c_str(), &s);
 			file += "<tr>\n<td><a href=" + name;
 			if (type == DT_DIR)
@@ -74,22 +76,22 @@ void	Response::findFiles(){
 	}
 	closedir(dir);
     std::string tmp = "/nfs/homes/";
-    tmp += USER;
+    tmp += _USER;
     tmp += "/.cache/autoindex.html"; 
     _file.open(tmp.c_str(), std::ios::out | std::ios::trunc);
     if (!_file.good())  {
-        _status_code = 404;
+        _statusCode = 404;
         return;
     }
     _file.write(file.c_str(), file.length());
     std::stringstream sg;
     sg << file.length();
-    sg >> _content_length;
+    sg >> _contentLength;
     _file.close();
     _file.open(tmp.c_str(), std::ios::in);
 }
 
-void    Response::convertExtention() {
+void    GET::convertExtention() {
     const char* ext[] = {"avif", "css", "csv", "docx", "gif", "html", "jpeg",
         "jpg", "js", "json", "mp3", "mp4", "png", "pdf", "php", "txt", "wav",
         "weba", "webm", "webp", "xml", ""};
@@ -104,7 +106,7 @@ void    Response::convertExtention() {
     }
 }
 
-int	Response::resourceType(){
+int	GET::resourceType(){
 	if (!checkLocation(_URI))
 		return NOT_FOUND;
 	DIR *dir = opendir(_URI.c_str());
@@ -120,7 +122,7 @@ int	Response::resourceType(){
 	return NOT_FOUND;
 }
 
-std::string Response::getExtension()const{
+std::string GET::getExtension()const{
 	size_t pos = _URI.rfind(".");
 	if (pos == std::string::npos)
 		return ("");
@@ -128,115 +130,70 @@ std::string Response::getExtension()const{
 		return _URI.substr(pos + 1, std::string::npos);
 }
 
-void	Response::getMethod(){
-	int	type = resourceType();
+void	getMethod(std::map<int, Webserve>&multi_fd, int fd, Helpers *help){
+	GET	g;
+	int	type = g.resourceType();
 	if (type == NOT_FOUND){
-		if ((_URI.c_str(), F_OK) == 0)
-			_statusCode = 403;
+		if ((multi_fd[fd].request_URI.c_str(), F_OK) == 0)
+			throw ResponseException("403", "Forbidden");
+			// _statusCode = 403;
 		else
-			_statusCode = 404;
+			throw ResponseException("404", "Not Found");
+			// _statusCode = 404;
 	}
 	else if (type == DIREC){
-		if (_URI[_URI.size() - 1] != '/'){
-			_oldURI += "/";
-			_statusCode = 301;
+		if (multi_fd[fd].request_URI[multi_fd[fd].request_URI.size() - 1] != '/'){
+			g._oldURI += "/";
+			g._statusCode = 301;
 			return ;
 		}
 		else{
-			if (!_locationScoop._Index.empty() || !config._rootIndex.empty()){
-				if (!_locationScoop._Index.empty())
-					_URI += _locationScoop.Index;
-				else if (!config._rootIndex.empty())
-					_URI += config._rootIndex;
-				for (int y = 0; CGI->env[y]; y++){
-					std::string tmp = CGI->env[y];
-					if(tmp.find("SCRIPT_FILENAME") != std::string::npos){
-						tmp = tmp.substr(0, tmp.find("=") + 1);
-						tmp += _URI;
-						delete CGI->env[y];
-						CGI->env[y] = const_cast<char*>((new std::string(tmp))->c_str());
-						break;
-					}
-				}
-				std::string extension = getExtension();
-				std::map<std::string, std::string>::iterator it = locationScoop.cgi_path.find(extension);
-				if ((extension == "php" && it != locationScoop.cgi_path.end()) || (extension == "py" && it != locationScoop.cgi_path.end())){
-					try{
-						if (extension == "php")
-							CGI->phpSet("");//**set php (add it in CGI code)
-						else
-							CGI->pySet("");//**set py (add it in CGI code)
-					}
-					catch (std::exception &e){
-						std::cout << e.what() << std::endl;
-					}
-					if (statusCode == 200){
-						_file.open(_fileName.c_str(), std::ios::in);
-						if (!_file.good()){
-							std::cout << "fail" << std::endl;
-							statusCode = 403;
+			for (std::vector<location>::iterator it = help->obj._locationScoops.begin(); it != help->obj._locationScoops.end(); it++){
+				if (multi_fd[fd].request_URI.find(help->locationScoop._locationPath) == 0){
+					if (!help->locationScoop._Index.empty() || !help->obj._rootIndex.empty()){//hna khassni location lijat frequest
+						if (!help->locationScoop._Index.empty())
+							multi_fd[fd].request_URI += help->locationScoop._Index;
+						else if (!help->obj._rootIndex.empty())
+							multi_fd[fd].request_URI += help->obj._rootIndex;
+						std::string extension = g.getExtension();
+						// std::map<std::string, std::string>::iterator it = help->locationScoop._cgiPath.find(extension);
+						g._file.open(multi_fd[fd].request_URI.c_str(), std::ios::in);
+						if (!g._file.good()){
+							throw ResponseException("403", "Forbidden");
+							// _statusCode = 403;
 							return;
 						}
-						return ;
+						g._contentType = g._extensions[g.getExtension()];
 					}
-
-				}
-			else{
-				_file.open(_URI.c_str(), std::ios::in);
-				if (!file.good()){
-					statusCode = 403;
-					return;
+					else{
+						if (help->locationScoop._autoIndex){
+							g.findFiles(); //***
+							g._contentType = "text/html";
+							return ;
+						}
+						else{
+							throw ResponseException("403", "Forbidden");
+							// _statusCode = 403;
+							return ;
+						}
 					}
-				_contentType = _extensions[convertExtention()];
-				}
-			}
-			else{
-				if (locationScoop._autoIndex){
-					findFiles(); //***
-					_contentType = "text/html";
-					return ;
-				}
-				else{
-					_statusCode = 403;
-					return ;
 				}
 			}
 		}
 	}
 	else if (type == FILE){
-		std::string extension = getExtension();
-		std::map<std::string, std::string>::iterator it = locationScoop.cgi_path.find(extension);
-		if ((extension == "php" && it != locationScoop.cgi_path.end()) || (extension == "py" && it != locationScoop.cgi_path.end())){
-			try{
-				if (extension == "php")
-					CGI->phpSet("");
-				else
-					CGI->pySet("");
-			}
-			catch(const std::exception& e){
-				std::cerr << e.what() << std::endl;
-			}
-			if (_statusCode == 200){
-				_file.open(_fileName.c_str(), std::ios::in);
-				if (!_file.good()){
-					std::cout << "fail" << std::endl;
-					_statusCode = 403;
-					return ;
-				}
-				_contentType = "text/html";
-			}
+		std::string extension = g.getExtension();
+		// std::map<std::string, std::string>::iterator it = help->locationScoop._cgiPath.find(extension);
+		g._file.open(multi_fd[fd].request_URI.c_str(), std::ios::in | std::ios::out);
+		if (!g._file.good()){
+			throw ResponseException("403", "Forbidden");
+			// _statusCode = 403;
+			return ;
 		}
-		else{
-			_file.open(_URI.c_str(), std::ios::in | std::ios::out);
-			if (!_file.good()){
-				_statusCode = 403;
-				return ;
-			}
-			if (_extensions[getExtension()].empty())
-				_contentType = "text/plain";
-			else
-				_contentType = _extensions[getExtension()];
-		}
+		if (g._extensions[g.getExtension()].empty())
+			g._contentType = "text/plain";
+		else
+			g._contentType = g._extensions[g.getExtension()];
 		return ;
 	}
 }

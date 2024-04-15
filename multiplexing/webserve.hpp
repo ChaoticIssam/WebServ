@@ -10,6 +10,7 @@
 #include <string>
 #include <iomanip>
 #include <cstdlib>
+#include "../get_method/GetMethod.hpp"
 #include <sstream>
 #include <cctype>
 #include <vector>
@@ -24,6 +25,7 @@ extern int epoll_fd;
 #define PORT 8080
 
 class Helpers;
+class GET;
 
 class   location{
     public:

@@ -11,20 +11,28 @@
 # include <filesystem>
 # include <sys/socket.h>
 # include <fcntl.h>
+#include "../config/config/configParss.hpp"
 # include <filesystem>
 
-# include "../multiplexing/webserve.hpp"
+# include "../delete_req_cgi/Request/Request.h"
 
 #define DIREC 0
 #define FILE 1
 #define NOT_FOUND -1
+#define BUFFER_SIZE 1024
 
 class cgi;
 class Helpers;
-class Webserve
+class Webserve;
+class location;
+class configParss;
 
-class   Response{
+class   GET{
+    public:
     Webserve       *_client;
+    // configParss _config;
+    // location    _locationScoop;
+    std::string     _USER;
     unsigned int _statusCode;
     int          _deleteError;
     std::map<int, std::string> _errorLine;
@@ -34,13 +42,10 @@ class   Response{
     std::string _URI;
     std::string _oldURI;
     std::string _query;
-    std::string _contentType;
     std::string _contentLength;
     std::string _response;
     std::string _errorPage;
     std::string _filePath;
-    Helpers.locationScoop    _locationScoop;
-    Helpers.obj              _config;
     bool        _locationFound;
     std::fstream _file;
     int         _errorfileGood;
@@ -53,11 +58,12 @@ class   Response{
     int     _allResponseBodyLen;
     cgi *CGI;
     //....
-    public:
+        std::string _contentType;
         std::string _fileName;
         bool        has_cgi;
-        Response(unsigned int statusCode, Webserve &client);
-        ~Response();
+        GET();
+        GET(unsigned int statusCode, Webserve &client);
+        ~GET();
         bool    checkLocation(std::string &path);
         int     pathType();
         void    uriParss();
@@ -66,11 +72,6 @@ class   Response{
         void    findFiles();
         void    convertExtention();
         void    getErrorLine();
-        void    getMethod();
-        void    deleteMethod();
-        void    postMethod();
-        void    send();
-        void    setBody();
         void    clearDir(const std::string &p);
         void    responde();
         void    setHeaders();
@@ -88,6 +89,7 @@ class   Response{
         const location& getLocation()const;
         const std::string& getQuery() const;
         const int &getresponseLength() const;
-}
+};
+    void    getMethod(std::map<int, Webserve>&multi_fd, int fd, Helpers *help);
 
 #endif
