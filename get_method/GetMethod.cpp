@@ -4,9 +4,11 @@ GET::GET(){}
 GET::~GET(){}
 
 bool GET::checkLocation(std::string &path)   {
-    
-    if (access(path.c_str(), F_OK) == 0)
+    std::cout << "path is : " << path << std::endl;
+    if (access(path.c_str(), F_OK) == 0){
+		std::cout << "dkhlat true" << std::endl;
         return true;
+	}
     else {
         size_t pos = path.find("%20");
         while (pos != std::string::npos)   {
@@ -31,7 +33,6 @@ void	GET::findFiles(){
 	std::map<std::string, unsigned char> files;
 	std::string file, name, path;
 	unsigned char type;
-	std::cout << "KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK" << std::endl;
 	file = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of ";
 	file += _oldURI;
 	file += "</title>\n</head>\n<body>\n<h1>Index of ";
@@ -124,6 +125,23 @@ int	GET::resourceType(){
 	return NOT_FOUND;
 }
 
+void   GET::uriParss(Helpers* help)   {
+	for(std::vector<location>::iterator it = help->obj._locationScoops.begin(); it != help->obj._locationScoops.end(); it++){
+		if (_URI.find((*it)._locationPath) == 0){
+			if (!(*it)._Index.empty() || !help->obj._rootDirectory.empty()){
+				std::string first = _URI;
+				_URI.clear();
+				_URI = help->obj._rootDirectory + first;
+				if (!(*it)._Index.empty())
+					_URI += (*it)._Index;
+				std::cout << "............................................................. " << _URI << std::endl;
+			}
+		}
+		else
+			ResponseException("404", "Not Found - 2");
+	}
+}
+
 std::string GET::getExtension()const{
 	size_t pos = _URI.rfind(".");
 	if (pos == std::string::npos)
@@ -133,61 +151,31 @@ std::string GET::getExtension()const{
 }
 
 void	getMethod(std::map<int, Webserve>&multi_fd, int fd, Helpers *help){
-	(void)fd;
-	(void)multi_fd;
 	GET	g;
 	g.convertExtention();
-	// g._URI = g._URI;
-	g._URI = "/nfs/homes/iszitoun/Desktop/Webserver/multiplexing/file.txt";
-	// g.uriParss();
+	g._URI = multi_fd[fd].request_URI;
+	g.uriParss(help);
 	int	type = g.resourceType();
-	std::cout << g._URI << std::endl;
-	std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << type << std::endl;
-	// if (type == NOT_FOUND){
-	// 	if ((g._URI.c_str(), F_OK) == 0)
-	// 		throw ResponseException("403", "Forbidden - 1");
-	// 	else
-	// 		throw ResponseException("404", "Not Found - 1");
-	// }
+	std::cout << "oooooooooooooooooo>>>>>>>>>>>>    " << g._URI << "and type :" << type <<std::endl;
+	// std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << type << std::endl;
+	if (type == NOT_FOUND){
+		if (access(g._URI.c_str(), F_OK) == 0)
+			throw ResponseException("403", "Forbidden - 1");
+		else
+			throw ResponseException("404", "Not Found - 1");
+	}
 	if (type == DIREC){
 		std::cout << "???????????????????????????????????????????????????????????????????????????????????????" << std::endl;
 		if (g._URI[g._URI.size() - 1] != '/'){
-			g._oldURI += "/";
+			g._URI += "/";
 			g._statusCode = 301;
 			return ;
 		}
 		else{
-			for (std::vector<location>::iterator it = help->obj._locationScoops.begin(); it != help->obj._locationScoops.end(); it++){
-				if (g._URI.find(help->locationScoop._locationPath) == 0){
-					if (!help->locationScoop._Index.empty() || !help->obj._rootIndex.empty()){//hna khassni location lijat frequest
-						if (!help->locationScoop._Index.empty())
-							g._URI += help->locationScoop._Index;
-						else if (!help->obj._rootIndex.empty())
-							g._URI += help->obj._rootIndex;
-						std::string extension = g.getExtension();
-						std::cout << "**************************************************** " << g._URI << std::endl;
-						g._file.open(g._URI.c_str(), std::ios::in);
-						if (!g._file.good()){
-							throw ResponseException("403", "Forbidden - 2");
-							return;
-						}
-						g._contentType = g._extensions[g.getExtension()];
-						std::cout << "content type is *************************** " << g._contentType << std::endl;
-					}
-					else{
-						if (help->locationScoop._autoIndex){
-							std::cout << "???????????????????????????????????????????????????????????????????????????????????????" << std::endl;
-							g.findFiles(); //***
-							g._contentType = "text/html";
-							return ;
-						}
-						else{
-							throw ResponseException("403", "Forbidden - 3");
-							return ;
-						}
-					}
-				}
-			}
+				std::cout << "???????????????????????????????????????????????????????????????????????????????????????" << std::endl;
+				g.findFiles(); //***
+				g._contentType = "text/html";
+				return ;
 		}
 	}
 	else if (type == FILE){
@@ -201,6 +189,8 @@ void	getMethod(std::map<int, Webserve>&multi_fd, int fd, Helpers *help){
 			g._contentType = "text/plain";
 		else
 			g._contentType = g._extensions[g.getExtension()];
+		// g._file.read(g._responseBUFFER, BUFFER_SIZE);
+		// std::cout << "-------------------->>>>>>>" << g._responseBUFFER << std::endl;
 		return ;
 	}
 }

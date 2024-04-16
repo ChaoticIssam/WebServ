@@ -15,6 +15,7 @@
 # include <filesystem>
 
 # include "../delete_req_cgi/Request/Request.h"
+# include "../multiplexing/delete/delete_method.h"
 
 #define DIREC 0
 #define FILE 1
@@ -56,6 +57,7 @@ class   GET{
     bool    _isHeader;
     int     _responseLen;
     int     _allResponseBodyLen;
+    std::string _fileContent;
     cgi *CGI;
     //....
         std::string _contentType;
@@ -66,7 +68,7 @@ class   GET{
         ~GET();
         bool    checkLocation(std::string &path);
         int     pathType();
-        void    uriParss();
+        void    uriParss(Helpers* help);
         void    uriMatch();
         int     resourceType();
         void    findFiles();

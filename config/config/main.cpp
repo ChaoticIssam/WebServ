@@ -76,7 +76,7 @@ int issam_main(int ac,  char **av, Helpers &help) {
 				// std::cout << "root_directory: " << help.obj._rootDirectory << std::endl;
 				continue;
 			}
-            else if (file == "rootIndex: "){
+            else if (file == "root_index:"){
                 Index++;
                 ifile >> help.obj._rootIndex;
                 if (!ifile.good())
