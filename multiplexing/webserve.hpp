@@ -10,7 +10,7 @@
 #include <string>
 #include <iomanip>
 #include <cstdlib>
-#include "../get_method/GetMethod.hpp"
+#include "../Response/Res.hpp"
 #include <sstream>
 #include <cctype>
 #include <vector>

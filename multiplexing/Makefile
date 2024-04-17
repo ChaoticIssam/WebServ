@@ -1,4 +1,4 @@
-src = main.cpp main_const.cpp Content_parsing.cpp request_parsing.cpp response.cpp ../config/config/configParss.cpp ../config/config/main.cpp delete/delete_method.cpp ../cgi/cgi.cpp ../get_method/GetMethod.cpp
+src = main.cpp main_const.cpp Content_parsing.cpp request_parsing.cpp response.cpp ../config/config/configParss.cpp ../config/config/main.cpp delete/delete_method.cpp ../cgi/cgi.cpp ../get_method/GetMethod.cpp ../Response/Res.cpp
 O_files = $(src:.cpp=.o)
 HEADERS =  webserve.hpp
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address -g
