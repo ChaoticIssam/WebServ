@@ -181,7 +181,8 @@ void    path_validity(std::map<int , Webserve>&multi_fd, int fd, Helpers *help) 
 	}
 
 	if (flag == 0)
-		throw ResponseException("404", "Not found");
+		return ;
+	// 	throw ResponseException("404", "Not found");
 
 }
 
@@ -219,53 +220,62 @@ std::string cgi_body_getter(std::string file, std::map<int, Webserve>&multi_fd, 
 	return body;
 }
 
-void create_response(std::map<int, Webserve>&multi_fd, std::string message, std::string status, Helpers *help) {
-	//check if the reponse is from a cgi program
-	std::string body;
-	Response	res;
-	int fd = help->events[help->i].data.fd;
-	if (strcmp(multi_fd[fd].content_body.c_str(), "NULL") != 0) {
-	std::cout << "here is the bodyyyyyyy \n";
-		body = cgi_body_getter(multi_fd[fd].content_body, multi_fd, fd);
-	}
-	else {
-		std::ostringstream  response_stream;
-	// std::cout << "here is the message: " << message << ", and the status is : " << status << std::endl; 
-		response_stream << "<!DOCTYPE html>\n"
-						<< "<html>\n"
-						<< "<head><title>" << message << "</title></head>\n"
-						<< "<body>\n"
-						<< "<h1>" << message << "</h1>\n"
-						<< "</body>\n"
-						<< "</html>\n";
-		body = response_stream.str();
-	}
-	std::cout << "here is the body: " << body << std::endl;
-		multi_fd[fd].response += multi_fd[fd].HTTP_version + " " + status + " ok \r\n";
-		if (multi_fd[fd].HTTP_method == "GET")
-			multi_fd[fd].response += "Content-Type: " + res._contentType + "\r\n";
-		multi_fd[fd].response += "Content-Type: text/html\r\n";
-		// multi_fd[fd].response += "Content-Length: " + size_tToString((body).size()) + "\r\n";
-		multi_fd[fd].response += "Content-Length: " + size_tToString(body.size()) + "\r\n";
-		multi_fd[fd].response += "\r\n\r\n"; // Empty line to separate headers from body
-		multi_fd[fd].response += body;
-	std::cout << "=======\nHere is the response : " << multi_fd[fd].response << std::endl;
-	// if(send(fd, multi_fd[fd].response.c_str(), multi_fd[fd].response.size(), 0) == -1)
-	// 	std::cout << "send response failed ." << std::endl;
-	close(fd);
-	epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
-	multi_fd.erase(fd);
-}
+// void create_response(std::map<int, Webserve>&multi_fd, std::string message, std::string status, Helpers *help) {
+// 	//check if the reponse is from a cgi program
+// 	(void)status;
+// 	std::string body;
+// 	// Response	res;
+// 	int fd = help->events[help->i].data.fd;
+// 	if (strcmp(multi_fd[fd].content_body.c_str(), "NULL") != 0) {
+// 	std::cout << "here is the bodyyyyyyy \n";
+// 		body = cgi_body_getter(multi_fd[fd].content_body, multi_fd, fd);
+// 	}
+// 	else {
+// 		std::ostringstream  response_stream;
+// 	// std::cout << "here is the message: " << message << ", and the status is : " << status << std::endl; 
+// 		response_stream << "<!DOCTYPE html>\n"
+// 						<< "<html>\n"
+// 						<< "<head><title>" << message << "</title></head>\n"
+// 						<< "<body>\n"
+// 						<< "<h1>" << message << "</h1>\n"
+// 						<< "</body>\n"
+// 						<< "</html>\n";
+// 		body = response_stream.str();
+// 	}
+
+// 	// // std::cout << "here is the body: " << body << std::endl;
+// 	// 	multi_fd[fd].response += multi_fd[fd].HTTP_version + " " + status + " ok \r\n";
+// 	// 	// multi_fd[fd].response += "Content-Type: " + res._contentType + "\r\n";
+// 	// 	multi_fd[fd].response += "Content-Type: text/html\r\n";
+// 	// 	// multi_fd[fd].response += "Content-Length: " + size_tToString((body).size()) + "\r\n";
+// 	// 	multi_fd[fd].response += "Content-Length: " + size_tToString(body.size()) + "\r\n";
+// 	// 	multi_fd[fd].response += "\r\n\r\n"; // Empty line to separate headers from body
+// 	// 	multi_fd[fd].response += body;
+// 	// std::cout << "=======\nHere is the response : " << multi_fd[fd].response << std::endl;
+// 	// if(send(fd, multi_fd[fd].response.c_str(), multi_fd[fd].response.size(), 0) == -1)
+// 	// 	std::cout << "send response failed ." << std::endl;
+// 	// // std::cout << "->>>>>>>>>>>>> content type : " << res._contentType << std::endl;
+// 	// // res._responseHead = "HTTP/1.1 200 OK\r\n";
+// 	// // if (multi_fd[fd].HTTP_method == "GET")
+// 	// // 	res._responseHead += "Content-Type: " + res._contentType + "\r\n";
+// 	// // res._responseHead += "Content-Length: ";
+// 	// // res._responseHead += res._contentLength + "\r\n\r\n";
+// 	// // send(fd, res._responseHead.c_str(), res._responseHead.length(), 0);
+// 	// close(fd);
+// 	epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
+// 	multi_fd.erase(fd);
+// }
 
 void    pars_request(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff){
 	int fd = help->events[help->i].data.fd;
 	Response res;
+	std::cout << "dkhlna l pars_request\n";
+	// std::cout << "here is the buff: " << buff << std::endl;
 	std::string newbuffer, bufbody, bufbody1;
 	if (buff != NULL) {
 		std::string temporaire(buff,multi_fd[fd].k);
 		if(multi_fd[fd].flag != 1)
 			request_line(multi_fd, help, buff, temporaire);
-
 		if(multi_fd[fd].flag1 != 1 && multi_fd[fd].flag == 1)
 		{
 			get_headers(multi_fd, help, temporaire);
@@ -279,12 +289,14 @@ void    pars_request(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 
 	// try { //try catch blocks for response and errors
 		//cgi
+		// std::cout << "status code: " << res._statusCode << " and message : " << res._message <<std::endl;
+		std::cout << ">>>>>>>>>>>>> here is the uri: " << multi_fd[fd].request_URI << std::endl;
 		res.uriParss(multi_fd, fd, help);
-		std::cout << "->>>>>>>>>>>>>" << res._URI << std::endl;
+		std::cout << "\t\t\t status code: " << res._statusCode << " and message : " << res._message <<std::endl;
+		if (res._statusCode != "200")
+			res.sendResponse(multi_fd, fd);
+		// std::cout << "here is the uri: " << res._URI << std::endl;
 		path_validity(multi_fd, fd, help);
-
-		// // issam_main()
-		// // which methode .
 		if(multi_fd[fd].HTTP_method == "POST")
 		{
 			if(multi_fd[fd].flag1 == 1)
@@ -292,14 +304,15 @@ void    pars_request(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 		}
 		// //hna ghanzid get method dyali//
 		else if (multi_fd[fd].HTTP_method == "GET") {
-			getMethod(multi_fd, fd, help);
+			res.getMethod(multi_fd, fd, help);
 		}
 		else if (multi_fd[fd].HTTP_method == "DELETE") {
 		    delete_method(multi_fd, fd, help);
 		}
+		res.sendResponse(multi_fd, fd);
 		cgi_handler(multi_fd, fd, help);
 		// std::cout << "here is the content length: " << multi_fd[fd].content_l << std::endl;
-		throw ResponseException("200", "OK");
+		// throw ResponseException("200", "OK");
 
 }
 

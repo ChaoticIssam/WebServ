@@ -66,12 +66,12 @@ int creat_socket_and_epoll(Helpers *help){
 				{
 					multi_fd[help->events[help->i].data.fd] = Webserve();
 				}
-				try {
+				// try {
 					if(help->events[help->i].data.fd & EPOLLIN && !multi_fd[help->events[help->i].data.fd].response_success){
 						char buff[MAX_SIZE];
 						memset(buff,0,(MAX_SIZE));
 						multi_fd[help->events[help->i].data.fd].k = read(help->events[help->i].data.fd, buff, (MAX_SIZE - 1));
-						// std::cout << buff << std::endl;
+						std::cout << "..." << std::endl;
 						call_request_functions(multi_fd, help, buff);
 					}
 					else {
@@ -79,17 +79,17 @@ int creat_socket_and_epoll(Helpers *help){
 						exit (1);
 					}
 
-				}
-				catch (const ResponseException& e){
-					if(help->events[help->i].data.fd & EPOLLOUT){
-						std::cout << "Exception caught: " << e.get_message() << ", Status: " << e.get_status() << std::endl;
-						create_response(multi_fd, e.get_message(), e.get_status(), help);
-					}
-					else {
-						std::cout << "did not enter create response\n";
-						exit (1);
-					}
-				}
+				// }
+				// catch (const ResponseException& e){
+				// 	if(help->events[help->i].data.fd & EPOLLOUT){
+				// 		std::cout << "Exception caught: " << e.get_message() << ", Status: " << e.get_status() << std::endl;
+				// 		create_response(multi_fd, e.get_message(), e.get_status(), help);
+				// 	}
+				// 	else {
+				// 		std::cout << "did not enter create response\n";
+				// 		exit (1);
+				// 	}
+				// }
 
 		}
 	}

@@ -1,7 +1,26 @@
 #include "Res.hpp"
 
-Response::Response(){}
-Response::~Response(){}
+Response::Response(){
+	std::cout << "Response constructor" << std::endl;
+	_statusCode = "200";
+	_message = "OK";
+	_contentType = "";
+	_contentLength = "";
+	_responseHead = "";
+	// _responseBUFFER = NULL;
+	_response = "";
+	_errorfileGood = 0;
+	_file.open("", std::ios::in);
+	_oldURI = "";
+	_URI = "";
+	_extensions.clear();
+	_isDirectory = false;
+	convertExtention();
+}
+Response::~Response(){
+	std::cout << "Response destructor" << std::endl;
+	_file.close();
+}
 
 bool Response::checkLocation(std::string &path)   {
     std::cout << "path is : " << path << std::endl;
@@ -25,7 +44,8 @@ bool Response::checkLocation(std::string &path)   {
     }
 }
 
-void	Response::findFiles(){
+void	Response::findFiles(int fd){
+	(void)fd;
 	DIR *dir;
 	struct dirent *d;
 	struct stat s;
@@ -35,7 +55,7 @@ void	Response::findFiles(){
 	unsigned char type;
 	file = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of ";
 	file += _oldURI;
-	file += "</title>\n</head>\n<body>\n<h1>Index of ";
+	file += "</title>\n</head>\n<body>\n<h1>Content: ";
 	file += _oldURI + "</h1>\n<hr>\n<pre>\n<table>\n<tbody>\n";
 	dir = opendir(_URI.c_str());
 	if (dir){
@@ -77,21 +97,32 @@ void	Response::findFiles(){
 		}
 		file += "</tbody>\n</table>\n<hr>\n</pre>\n</body>\n</html>";
 	}
-	closedir(dir);
-    std::string tmp = "/nfs/homes/";
-    tmp += _USER;
-    tmp += "/.cache/autoindex.html"; 
-    _file.open(tmp.c_str(), std::ios::out | std::ios::trunc);
-    if (!_file.good())  {
-        _statusCode = 404;
-        return;
-    }
+	_statusCode = "200";
+	_message = "OK";
+	_isDirectory = true;
+	// closedir(dir);
+    // std::string tmp = "/home/";
+    // tmp += "chaotic";
+    // tmp += "/.cache/autoindex.html"; 
+    // _file.open(tmp.c_str(), std::ios::out | std::ios::trunc);
+    // if (!_file.good())  {
+	// 	std::cout << "not good" << std::endl;
+	// 	_statusCode = "403";
+	// 	_message = "Forbidden";
+	// 	return ;
+    // }
     _file.write(file.c_str(), file.length());
-    std::stringstream sg;
-    sg << file.length();
-    sg >> _contentLength;
+    // std::stringstream sg;
+    // sg << file.length();
+    // sg >> _contentLength;
+	std::string response = "HTTP/1.1 200 OK\r\n";
+	response += "Content-Type: text/html\r\n";
+	// response += "Content-Length: " + std::to_string(file.length()) + "\r\n";
+	response += "\r\n";
+	response += file;
+	send(fd, response.c_str(), response.length(), 0);
     _file.close();
-    _file.open(tmp.c_str(), std::ios::in);
+    // _file.open(tmp.c_str(), std::ios::in);
 }
 
 void    Response::convertExtention() {
@@ -129,18 +160,27 @@ void   Response::uriParss(std::map<int, Webserve>& multi_fd, int fd,Helpers* hel
 	_URI = multi_fd[fd].request_URI;
 	for(std::vector<location>::iterator it = help->obj._locationScoops.begin(); it != help->obj._locationScoops.end(); it++){
 		if (_URI.find((*it)._locationPath) == 0){
-			if (!(*it)._Index.empty() || !help->obj._rootDirectory.empty()){
+			if ((*it)._autoIndex == 0){
+				_statusCode = "403";
+				_message = "Forbidden";
+				return ;
+			}
+			if (!(*it)._Index.empty() || !(*it)._rootDirectoryLocation.empty() || !help->obj._rootDirectory.empty()){
 				std::string first = _URI;
 				_URI.clear();
-				_URI = help->obj._rootDirectory + first;
+				if (!(*it)._rootDirectoryLocation.empty())
+					_URI = (*it)._rootDirectoryLocation + first;
+				else if (!help->obj._rootDirectory.empty())
+					_URI = help->obj._rootDirectory + first;
 				if (!(*it)._Index.empty())
 					_URI += (*it)._Index;
-				std::cout << "............................................................. " << _URI << std::endl;
+				std::cout << "1............................................................. " << _statusCode << std::endl;
+				return ;
 			}
 		}
-		else
-			ResponseException("404", "Not Found - 2");
 	}
+	_statusCode = "404";
+	_message = "Not Found";
 }
 
 std::string Response::getExtension()const{
@@ -149,4 +189,78 @@ std::string Response::getExtension()const{
 		return ("");
 	else
 		return _URI.substr(pos + 1, std::string::npos);
+}
+
+void Response::createHeader() {
+	_responseHead += "HTTP/1.1 " + _statusCode + " " + _message + "\r\n";
+	_responseHead += "Content-Type: " + _contentType + "\r\n";
+	_responseHead += "Content-Length: " + _contentLength + "\r\n\r\n";
+}
+
+void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
+	(void)multi_fd;
+	char *buff = new char[BUFFER_SIZE];
+	if (_statusCode == "200" && !_isDirectory){
+		_file.open(_URI.c_str(), std::ios::in | std::ios::out);
+		if (!_file.good()){
+			std::cout << "not good" << std::endl;
+			_errorfileGood = errno;
+			_statusCode = "403";
+			_message = "Forbidden";
+			createHeader();
+			send(fd, _responseBUFFER, _responseHead.length(), 0);
+			close(fd);
+			return ;
+		}
+		std::cout << "good" << std::endl;
+		createHeader();
+		strcpy(buff, _responseHead.c_str());
+		send(fd, buff, _responseHead.length(), 0);
+		while (true) {
+				_file.read(buff, BUFFER_SIZE);
+				std::streamsize bytesRead = _file.gcount();
+				if (bytesRead == 0)
+					break;
+				send(fd, buff, bytesRead, 0);
+				if (bytesRead < BUFFER_SIZE)
+					_file.seekg(-bytesRead, std::ios::cur);
+			}
+	}
+	else if (!_isDirectory){
+		std::ostringstream  response_stream;
+		_contentType = "text/html";
+		createHeader();
+		strcpy(buff, _responseHead.c_str());
+		send(fd, buff, _responseHead.length(), 0);
+    	response_stream << "<!DOCTYPE html>\n"
+                    << "<html>\n"
+                    << "<head>\n"
+                    << "<style>\n"
+                    << "    body {\n"
+                    << "        background-color: black;\n"
+                    << "        display: flex;\n"
+                    << "        justify-content: center;\n"
+                    << "        align-items: center;\n"
+                    << "        height: 100vh;\n"
+                    << "        margin: 0;\n"
+                    << "    }\n"
+                    << "    h1 {\n"
+                    << "        color: white;\n"
+                    << "    }\n"
+                    << "</style>\n"
+                    << "<title>" << _message << "</title>\n"
+                    << "</head>\n"
+                    << "<body>\n"
+                    << "<h1>" << _message << "</h1>\n"
+                    << "</body>\n"
+                    << "</html>\n";
+		_response = response_stream.str();
+		strcpy(buff, _response.c_str());
+		send(fd, buff, _response.length(), 0);
+	}
+	delete [] buff;
+	close (fd);
+	epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
+	multi_fd.erase(fd);
+	return ;
 }

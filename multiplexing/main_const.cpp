@@ -63,6 +63,7 @@ int main(int ac, char **av){
 
     Helpers help;
     issam_main(ac, av, help);
+    std::cout << "lmain" << std::endl << std::endl << std::endl << std::endl;
     if(creat_socket_and_epoll(&help)){
         std::cout << "the socke couldnt be created ." << std::endl;
         exit(1);
