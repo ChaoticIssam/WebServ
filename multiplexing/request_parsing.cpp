@@ -269,6 +269,7 @@ std::string cgi_body_getter(std::string file, std::map<int, Webserve>&multi_fd, 
 void    pars_request(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff){
 	int fd = help->events[help->i].data.fd;
 	Response res;
+	
 	std::cout << "dkhlna l pars_request\n";
 	// std::cout << "here is the buff: " << buff << std::endl;
 	std::string newbuffer, bufbody, bufbody1;
