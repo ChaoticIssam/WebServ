@@ -94,7 +94,7 @@ int creat_socket_and_epoll(Helpers *help){
 							call_request_functions(multi_fd[help->events[help->i].data.fd].res ,multi_fd, help, buff);
 					}
 					// std::cout << "gg = "<<  multi_fd[help->events[help->i].data.fd].response_success << std::endl;
-					if ((help->events[help->i].events & EPOLLOUT) && multi_fd[help->events[help->i].data.fd].res._Rpnse == true)
+					if ((help->events[help->i].events & EPOLLOUT) && (multi_fd[help->events[help->i].data.fd].res._Rpnse == true || multi_fd[help->events[help->i].data.fd].response_success== true))
 					{
 						std::cout << " GET METHOD "<<std::endl;
 						std::cout << multi_fd[help->events[help->i].data.fd].res._contentLength << std::endl;

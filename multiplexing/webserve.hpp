@@ -133,6 +133,7 @@ class   configParss{
         std::map<int, std::string>  errorHolder;
 		std::string _rootDirectory;
         std::string _rootIndex;
+        std::string _maxLength;
         std::string readConfigFile(void);
         void        fillInfo(std::string file);
         void        setPort(std::string port);

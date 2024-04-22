@@ -84,6 +84,13 @@ int issam_main(int ac,  char **av, Helpers &help) {
                     throw   std::runtime_error("Error: something went wrong with the error page config.");
                 continue;
             }
+            else if (file == "max_length:"){
+                Index++;
+                ifile >> help.obj._maxLength;
+                if (!ifile.good())
+                    throw   std::runtime_error("Error: something went wrong with the max length config.");
+                continue;
+            }
             else if (file == "location:"){
                 if (Index == 5){
                     help.obj._servernameTMP = help.obj.getHost();
