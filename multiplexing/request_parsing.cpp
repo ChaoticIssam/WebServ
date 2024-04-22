@@ -18,12 +18,12 @@ void    request_line(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 		}
 }
 
-void    create_the_request_file(std::map<int , Webserve>&multi_fd, Helpers *help){
-	get_the_content_of_the_file(multi_fd, help);
+void    create_the_request_file(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res){
+	get_the_content_of_the_file(multi_fd, help, res);
 	
 }
 
-void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string temporaire){
+void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string temporaire, Response& res){
 	size_t pos0;
 	int fd = help->events[help->i].data.fd;
 
@@ -33,17 +33,19 @@ void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::strin
 		{
 			temporaire = multi_fd[fd].header.substr(pos0 + 4, multi_fd[fd].header.length() - (pos0 + 4));
 			multi_fd[fd].headers = multi_fd[fd].header.substr(0, pos0);
-			if(multi_fd[fd].HTTP_method == "POST")
+			content_length(multi_fd, help, res);
+            content_type(multi_fd, help, res);
+            if(multi_fd[fd].HTTP_method == "POST") 
 			{
 				post_cases(multi_fd, help);
 				if(multi_fd[fd].content_type == 'L')
 				{
-					content_length(multi_fd, help);
+					content_length(multi_fd, help, res);
 					multi_fd[fd].dec = atoi(multi_fd[fd].len.c_str());
 					multi_fd[fd].dec -= (temporaire.length());
 					multi_fd[fd].Body.append(temporaire.c_str(),temporaire.size());
 					if(multi_fd[fd].dec <= 0){
-						create_the_request_file(multi_fd, help);
+						create_the_request_file(multi_fd, help, res);
 						return ;
 					}
 				}
@@ -64,7 +66,7 @@ void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::strin
 						// temporaire = multi_fd[fd].Body.substr(0, multi_fd[fd].Body.length());
 						// multi_fd[fd].flag2 = 1;
 						if(multi_fd[fd].dec <= 0){
-							create_the_request_file(multi_fd, help);
+							create_the_request_file(multi_fd, help, res);
 							return ;
 						}
 					}
@@ -74,18 +76,17 @@ void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::strin
 				}
 				multi_fd[fd].flag1 = 1;
 			}
-
-			}
+		}
 }
 
-void    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff){
+void    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff, Response& res){
 	int fd = help->events[help->i].data.fd;
 	if(multi_fd[fd].content_type == 'L'){
 			multi_fd[fd].Body.append(buff,multi_fd[fd].k);
 			// std::cout << "here is the body: " << multi_fd[fd].Body << std::endl;
 			multi_fd[fd].dec -= multi_fd[fd].k;
 			if(multi_fd[fd].dec <= 0){
-				create_the_request_file(multi_fd, help);
+				create_the_request_file(multi_fd, help, res);
 				return ;
 			}
 		}
@@ -103,7 +104,7 @@ void    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buf
 				multi_fd[fd].dec1 = multi_fd[fd].chunk_len_dec;
 
 				if(multi_fd[fd].dec1 == 0){
-					create_the_request_file(multi_fd, help);
+					create_the_request_file(multi_fd, help, res);
 					return ;
 				}
 				multi_fd[fd].dec1 -= multi_fd[fd].first_chunk.size() ;
@@ -150,7 +151,7 @@ void    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buf
 						multi_fd[fd].dec1 = multi_fd[fd].chunk_len_dec;
 
 						if(multi_fd[fd].dec1 == 0){
-							create_the_request_file(multi_fd, help);
+							create_the_request_file(multi_fd, help, res);
 							return ;
 						}
 						multi_fd[fd].dec1 -= multi_fd[fd].first_chunk.size();
@@ -164,61 +165,12 @@ void    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buf
 		}
 }
 
-void    path_validity(std::map<int , Webserve>&multi_fd, int fd, Helpers *help) {
-	int flag = 0;
-
-	for (std::vector<location>::iterator it = help->obj._locationScoops.begin(); it != help->obj._locationScoops.end(); it++) {
-		// std::cout << "the URL : " << multi_fd[fd].request_URI << " the location : " << it->_locationPath << std::endl;
-		if (multi_fd[fd].request_URI.find(it->_locationPath) == 0) {
-			// std::cout << "the location matches\n";
-			flag = 1;
-			// multi_fd[fd].resource = ".." +  multi_fd[fd].request_URI;
-			// if (it->_Index == "index.php" ) {
-				// std::cout << "location : " << it->_locationPath << " has php\n";
-				// exit (0);
-			// }
-		}
-	}
-
-	if (flag == 0)
-		return ;
-	// 	throw ResponseException("404", "Not found");
-
-}
-
 std::string size_tToString(size_t value) {
 	std::ostringstream oss;
 	oss << value;
 	return oss.str();
 }
 
-std::string cgi_body_getter(std::string file, std::map<int, Webserve>&multi_fd, int fd) {
-	std::ifstream cgi_file(file.c_str());
-
-	if (!cgi_file.is_open()) {
-		std::cerr << "Error openning the file" << std::endl;
-		throw ResponseException("500", "Internal Server Error");
-	}
-
-	std::ostringstream  oss;
-	oss << cgi_file.rdbuf();
-	cgi_file.close();
-	std::string file_outcome = oss.str();
-
-	//extract the body
-	std::string	 body;
-	if (multi_fd[fd].extension == "php") {
-		size_t  pos = file_outcome.find("\n\n");
-		if (pos == std::string::npos) {
-			std::cerr << "Blank line not found" << std::endl;
-			exit (1);
-		}
-		body = file_outcome.substr(pos + 2);
-	}
-	else
-		body = file_outcome;
-	return body;
-}
 
 // void create_response(std::map<int, Webserve>&multi_fd, std::string message, std::string status, Helpers *help) {
 // 	//check if the reponse is from a cgi program
@@ -266,11 +218,10 @@ std::string cgi_body_getter(std::string file, std::map<int, Webserve>&multi_fd, 
 // 	multi_fd.erase(fd);
 // }
 
-void    pars_request(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff){
+void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *help,char *buff){
 	int fd = help->events[help->i].data.fd;
-	Response res;
+	// Response res;
 	
-	std::cout << "dkhlna l pars_request\n";
 	// std::cout << "here is the buff: " << buff << std::endl;
 	std::string newbuffer, bufbody, bufbody1;
 	if (buff != NULL) {
@@ -279,7 +230,8 @@ void    pars_request(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 			request_line(multi_fd, help, buff, temporaire);
 		if(multi_fd[fd].flag1 != 1 && multi_fd[fd].flag == 1)
 		{
-			get_headers(multi_fd, help, temporaire);
+			// std::cout << "heeeeeeeeeeeeeeeer\n";
+			get_headers(multi_fd, help, temporaire, res);
 			if(multi_fd[fd].HTTP_method == "POST")
 				return ;
 		}
@@ -291,32 +243,32 @@ void    pars_request(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 	// try { //try catch blocks for response and errors
 		//cgi
 		// std::cout << "status code: " << res._statusCode << " and message : " << res._message <<std::endl;
-		std::cout << ">>>>>>>>>>>>> here is the uri: " << multi_fd[fd].request_URI << std::endl;
 		res.uriParss(multi_fd, fd, help);
-		std::cout << "\t\t\t status code: " << res._statusCode << " and message : " << res._message <<std::endl;
-		if (res._statusCode != "200")
-			res.sendResponse(multi_fd, fd);
+		// if (res._statusCode != "200")
+		// 	res.sendResponse(multi_fd, fd);
 		// std::cout << "here is the uri: " << res._URI << std::endl;
-		path_validity(multi_fd, fd, help);
 		if(multi_fd[fd].HTTP_method == "POST")
 		{
 			if(multi_fd[fd].flag1 == 1)
-				get_Body_part(multi_fd, help, buff);
+				get_Body_part(multi_fd, help, buff, res);
 		}
 		// //hna ghanzid get method dyali//
 		else if (multi_fd[fd].HTTP_method == "GET") {
 			res.getMethod(multi_fd, fd, help);
+			res._Rpnse = true;
 		}
 		else if (multi_fd[fd].HTTP_method == "DELETE") {
-		    delete_method(multi_fd, fd, help);
+		    delete_method(multi_fd, fd, help, res);
 		}
-		res.sendResponse(multi_fd, fd);
-		cgi_handler(multi_fd, fd, help);
+		std::cout << "\t\t\t status code: " << res._statusCode << " and message : " << res._message <<std::endl;
+		std::cout << ">>>>>>>>>>>>> here is the uri: " << res._URI << std::endl;
+		// res.sendResponse(multi_fd, fd);
+		// cgi_handler(multi_fd, fd, help, res);
 		// std::cout << "here is the content length: " << multi_fd[fd].content_l << std::endl;
 		// throw ResponseException("200", "OK");
 
 }
 
-void    call_request_functions(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff) {
-	pars_request(multi_fd, help,buff);
+void    call_request_functions(Response &res,std::map<int , Webserve>&multi_fd, Helpers *help,char *buff) {
+	pars_request(res,multi_fd, help,buff);
 }

@@ -11,10 +11,11 @@
 #include <cerrno>
 #include <cstring>
 #include <cstdlib>
+#include "../../Response/Res.hpp"
 // #include "../Request.h"
 #include "../webserve.hpp"
 
-// class Request;
+class Response;
 
 class Webserve;
 
@@ -33,7 +34,7 @@ public:
     virtual ~ResponseException() throw() {}
 };
 
-void    delete_method(std::map<int, Webserve>&multi_fd, int fd, Helpers *help);
+void    delete_method(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res);
 
 
 #endif

@@ -10,90 +10,96 @@ int hexToDecimal(const std::string& hexStr) {
 }
 
 int creat_socket_and_epoll(Helpers *help){
-
 	//create socket and epool instence .
-	help->sosocket = socket(AF_INET, SOCK_STREAM, 0);
-	if(help->sosocket == -1){
-		std::cout << "error socket" << std::endl;
-		return(1);
-	}
-	epoll_fd = epoll_create(1);
 	struct epoll_event multipl;
 	struct sockaddr_in addresses;
-	addresses.sin_family = AF_INET;
-	addresses.sin_addr.s_addr = INADDR_ANY;
-	addresses.sin_port = htons(atoi(help->obj.getPort().c_str()));
+	help->s = 0;
+	epoll_fd = epoll_create(1);
+	for(std::vector<configParss>::iterator it = _srv.begin(); it != _srv.end(); it++)
+	{
+		help->sosocket = socket(AF_INET, SOCK_STREAM, 0);
+		std::cout << "socket : " << help->sosocket << std::endl;
+		if(help->sosocket == -1){
+			std::cout << "error socket" << std::endl;
+			return(1);
+		}
+		
+		addresses.sin_family = AF_INET;
+		
+		addresses.sin_addr.s_addr = inet_addr(it->getHost().c_str());
+		if(addresses.sin_addr.s_addr == INADDR_NONE)
+		{
+			std::cout << "Invalid IP address" << std::endl;
+			return(1);
+		}
+		addresses.sin_port = htons(atoi(it->getPort().c_str()));
 
-	//bind socket and bind many sockets with same ip address ND PORT.
-
-	int op = 1;
-	if(setsockopt(help->sosocket, SOL_SOCKET, SO_REUSEADDR, &op, sizeof(op)) == -1){
-		perror("");
-		std::cout << "setsockopt error" << std::endl;
-		return(1);
+		//bind socket and bind many sockets with same ip address ND PORT.
+		int op = 1;
+		if(setsockopt(help->sosocket, SOL_SOCKET, SO_REUSEADDR, &op, sizeof(op)) == -1){
+			// perror("");
+			std::cout << "setsockopt error" << std::endl;
+			return(1);
+		}
+		if(bind(help->sosocket, (struct sockaddr *)&addresses, sizeof(addresses)) == -1){
+			std::cout << "bind error" << std::endl;
+			return(1);        
+		}
+		// now is the listen step where the socket listen to a connection .
+		if(listen(help->sosocket, 10) == -1){
+			std::cout << "listen error" << std::endl;
+			return(1);
+		}
+		// help->socketat.resize(help->s + 1);
+		std::cout << help->sosocket <<" " << it->getHost() << std::endl;
+		multipl.data.fd = help->sosocket;
+		help->socketat.push_back(help->sosocket);
+		multipl.events = EPOLLIN ;
+		epoll_ctl(epoll_fd, EPOLL_CTL_ADD,help->sosocket, &multipl);
+		// control the epoll with adding modifying or deleting a file discreptor;
 	}
-	if(bind(help->sosocket, (struct sockaddr *)&addresses, sizeof(addresses)) == -1){
-		std::cout << "bind error" << std::endl;
-		return(1);        
-	}
-	// now is the listen step where the socket listen to a connection .
-	if(listen(help->sosocket, 10) == -1){
-		std::cout << "listen error" << std::endl;
-		return(1);
-	}
-	// control the epoll with adding modifying or deleting a file discreptor;
-	multipl.events = EPOLLIN;
-	multipl.data.fd = help->sosocket;
-	epoll_ctl(epoll_fd, EPOLL_CTL_ADD, help->sosocket, &multipl);
 	std::map<int , Webserve>multi_fd;
+				help->server_index = 0;
 	while(1){
-			int client_socket = -1;
-			int epoll_w = epoll_wait(epoll_fd, help->events, 1000, -1);
-			for(help->i = 0; help->i < epoll_w; help->i++){
-				
-				if(help->events[help->i].data.fd == help->sosocket){
-					client_socket = accept(help->sosocket, 0, 0);
-					if(client_socket == -1){
-						std::cout << "accept error" << std::endl;
-						return(1);
+				int epoll_w = epoll_wait(epoll_fd, help->events, 1000, 0);
+				for(help->i = 0; help->i < epoll_w; help->i++){
+					int flag = 0;
+					for(int l = 0; l < (int)help->socketat.size(); l++){
+						int client_socket ;
+						if(help->events[help->i].data.fd == help->socketat[l])
+						{
+							help->server_index = l;
+							client_socket = accept(help->socketat[l], 0, 0);
+							if(client_socket == -1){
+								std::cout << "accept error" << std::endl;
+								return(1);
+							}
+							multipl.events = EPOLLIN | EPOLLOUT;
+							multipl.data.fd = client_socket;
+							epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &multipl);
+							multi_fd[help->events[help->i].data.fd] = Webserve();
+							multi_fd[help->events[help->i].data.fd].config = _srv[l];
+							flag = 1;	
+						}
 					}
-					multipl.events = EPOLLIN | EPOLLOUT;
-					multipl.data.fd = client_socket;
-					epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &multipl);
-					continue;
-				}
-				if(multi_fd.count(help->events[help->i].data.fd) == 0)
-				{
-					multi_fd[help->events[help->i].data.fd] = Webserve();
-				}
-				// try {
-					if(help->events[help->i].data.fd & EPOLLIN && !multi_fd[help->events[help->i].data.fd].response_success){
+					if(flag == 1)
+						continue;
+					if((help->events[help->i].events  & EPOLLIN))
+					{
 						char buff[MAX_SIZE];
-						memset(buff,0,(MAX_SIZE));
+						memset(buff,0,MAX_SIZE-1);
 						multi_fd[help->events[help->i].data.fd].k = read(help->events[help->i].data.fd, buff, (MAX_SIZE - 1));
-						std::cout << "..." << std::endl;
-						call_request_functions(multi_fd, help, buff);
+						if(multi_fd[help->events[help->i].data.fd].k > 0)
+							call_request_functions(multi_fd[help->events[help->i].data.fd].res ,multi_fd, help, buff);
 					}
-					else {
-						std::cout << "did not enter call_request\n";
-						exit (1);
+					// std::cout << "gg = "<<  multi_fd[help->events[help->i].data.fd].response_success << std::endl;
+					if ((help->events[help->i].events & EPOLLOUT) && multi_fd[help->events[help->i].data.fd].res._Rpnse == true)
+					{
+						// std::cout << "heeeeereee out "<<std::endl;
+						multi_fd[help->events[help->i].data.fd].res.sendResponse(multi_fd, help->events[help->i].data.fd);
 					}
-
-				// }
-				// catch (const ResponseException& e){
-				// 	if(help->events[help->i].data.fd & EPOLLOUT){
-				// 		std::cout << "Exception caught: " << e.get_message() << ", Status: " << e.get_status() << std::endl;
-				// 		create_response(multi_fd, e.get_message(), e.get_status(), help);
-				// 	}
-				// 	else {
-				// 		std::cout << "did not enter create response\n";
-				// 		exit (1);
-				// 	}
-				// }
-
 		}
 	}
 	close(help->sosocket);
-						std::cout << "haaaaaaaaaaaaa\n";
 	return(0);
 }

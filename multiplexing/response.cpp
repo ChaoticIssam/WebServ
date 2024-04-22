@@ -61,7 +61,7 @@ void    success_response(std::map<int , Webserve>&multi_fd, Helpers *help){
     multi_fd[fd].response += multi_fd[fd].HTTP_version + " 201 \r\n";
     multi_fd[fd].response += "Content-Type: text/html\r\n";
     multi_fd[fd].response += "Content-Length: " + size_tToString((response.str()).size()) + "\r\n";
-    multi_fd[fd].response += "\r\n\r\n"; // Empty line to separate headers from body
+    multi_fd[fd].response += "\r\n"; // Empty line to separate headers from body
     multi_fd[fd].response += response.str();
     // std::cout << "response : " << multi_fd[fd].response << std::endl;
     // printf("--> %zd", send(help->sosocket, multi_fd[fd].response.c_str(), (int)multi_fd[fd].response.size(), 0));

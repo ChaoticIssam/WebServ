@@ -25,6 +25,7 @@
 src =	config/config/main.cpp config/config/configParss.cpp multiplexing/main_const.cpp #delete_req_cgi/Request/Request_charcheck.cpp delete_req_cgi/Request/Request_Get_handle.cpp \
 		delete_req_cgi/Request/Request_matchlocation.cpp delete_req_cgi/Request/Request_parse.cpp \
 		delete_req_cgi/Request/Request.cpp delete_req_cgi/Request/delete/delete_method.cpp config/config/main.cpp config/config/configParss.cpp#
+		delete_req_cgi/Request/Request.cpp delete_req_cgi/Request/delete/delete_method.cpp config/config/main.cpp config/config/configParss.cpp#
 O_files = $(src:.cpp=.o)
 # HEADERS =
 CXXFLAGS = -Wall -Wextra -Werror -fsanitize=address -g3 -std=c++98

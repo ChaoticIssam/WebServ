@@ -21,6 +21,7 @@ int issam_main(int ac,  char **av, Helpers &help) {
             if (file == "server{" && Index == 0){
                 Index++;
                 lock_4 = 0;
+                help.obj._locationScoops.clear();
                 continue;
             }
             else if (file == "port:" && Index == 1){
@@ -76,7 +77,7 @@ int issam_main(int ac,  char **av, Helpers &help) {
 				// std::cout << "root_directory: " << help.obj._rootDirectory << std::endl;
 				continue;
 			}
-            else if (file == "root_index:"){
+            else if (file == "rootIndex: "){
                 Index++;
                 ifile >> help.obj._rootIndex;
                 if (!ifile.good())
