@@ -93,6 +93,7 @@ class Response {
     Response();
     ~Response();
     void        createHeader(size_t contentLength);
+    void        createHeaderChunk();
     std::string getExtension()const;
     int         resourceType();
     void        convertExtention();

@@ -203,11 +203,21 @@ std::string to_string(size_t value) {
     ss << value;
     return ss.str();
 }
-void Response::createHeader(size_t contentLength) {
 
+void Response::createHeader(size_t contentLength) {
+	_responseHead += "HTTP/1.1 " + _statusCode + " " + _message + "\r\n";
+	_responseHead += "Content-Type: " + _contentType + "\r\n";
+	_responseHead += "Content-Length: " + to_string(contentLength) + "\r\n\r\n";
+	_isHeader = true;
+}
+
+void Response::createHeaderChunk() {
     _responseHead += "HTTP/1.1 " + _statusCode + " " + _message + "\r\n";
     _responseHead += "Content-Type: " + _contentType + "\r\n";
-    _responseHead += "Content-Length: " + to_string(contentLength) + "\r\n\r\n";
+	_responseHead += "Transfer-Encoding: chunked\r\n"; 
+    _responseHead += "\r\n";
+	// std::cout << ">>>>>>>>>>>>>>>>> contentLength: " << contentLength << std::endl;
+    // _responseHead += "Content-Length: " + to_string(contentLength) + "\r\n\r\n";
     _isHeader = true;
 }
 
@@ -216,15 +226,19 @@ void Response::createHeader(size_t contentLength) {
 void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 	char *buff = new char[BUFFER_SIZE];
 	if(!_isHeader){
+		std::cout << "HEADER if condition \n";
 		if (_statusCode == "301"){
+			std::cout << "301 if condition \n";
 			createHeader(1000);
 			send(fd, _responseHead.c_str(), _responseHead.length(), 0);
 			close(fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
+			std::cout << "first erase\n";
 			return ;
 		}
 		if (_statusCode == "404" || _statusCode == "403" || _statusCode == "500" || _statusCode == "501" || _statusCode == "505"){
+			std::cout << "404 if condition \n";
 			std::string send_message;
 			std::ostringstream  response_stream;
 			_contentType = "text/html";
@@ -259,21 +273,25 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 			close(fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
+			std::cout << "second erase\n";
 			return ;
 			
 		}
+		std::cout << "FINNA OPEN FILE \n";
 		_file.open(_URI.c_str(), std::ios::in | std::ios::out);
 		if (!_file.good() && !_isDirectory) {
-
+			std::cout << "file not good condition" << std::endl;
 			_errorfileGood = errno;
 			_statusCode = "403";
 			_message = "Forbidden";
 			if (!_isHeader){
+				std::cout << "NO HEADER condition\n";
 				createHeader(_fileSize);
 				if (send(fd, _responseHead.c_str(), _responseHead.length(), 0) == -1){
 					close(fd);
 					epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 					multi_fd.erase(fd);
+					std::cout << "third erase\n";
 					return ;
 				}
 			}
@@ -285,12 +303,15 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 		std::streampos fileSize = _file.tellg();
 		_file.seekg(0, std::ios::beg);
 		_fileSize = (size_t)fileSize;
-
-		createHeader(_fileSize);
+		if (_statusCode == "200" && !_isDirectory)
+			createHeaderChunk();
+		else if (_statusCode == "200" && _isDirectory)
+			createHeader(_fileSize);
 		if (send(fd, _responseHead.c_str(), _responseHead.length(), 0) == -1){
 			close(fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
+			std::cout << "fourth erase\n";
 			return ;
 		}
 	}
@@ -300,28 +321,61 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 			close (fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
+			std::cout << "fifth erase\n";
 			return ;
 	}
-	else if ((_statusCode == "200" || _statusCode == "301") && !_isDirectory){
-		_file.read(buff, BUFFER_SIZE);
-		std::streamsize bytesRead = _file.gcount();		
-		if (bytesRead == 0){
-			
-			close (fd);
-			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
-			multi_fd.erase(fd);
-			return ;
-		}
-		if (send(fd, buff, bytesRead, 0) == -1){
-			close(fd);
-			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
-			multi_fd.erase(fd);
-			return ;
-		}
-		if (bytesRead < BUFFER_SIZE)
-			_file.seekg(-bytesRead, std::ios::cur);
-	}
+else if ((_statusCode == "200") && !_isDirectory) {//chunked start
+    char buff[BUFFER_SIZE];
+    _file.read(buff, BUFFER_SIZE);
+    std::streamsize bytesRead = _file.gcount();
+    if (bytesRead > 0) {
+        std::ostringstream chunkHeader;
+        chunkHeader << std::hex << bytesRead << "\r\n"; // Chunk size in hexadecimal
+        std::string chunkHeaderStr = chunkHeader.str();
+
+        if (send(fd, chunkHeaderStr.c_str(), chunkHeaderStr.size(), 0) == -1) {
+            close(fd);
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+            multi_fd.erase(fd);
+			std::cout << "sixth erase\n";
+            return;
+        }
+
+        if (send(fd, buff, bytesRead, 0) == -1) {
+            close(fd);
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+            multi_fd.erase(fd);
+			std::cout << "seventh erase\n";
+            return;
+        }
+
+        // Send the end of chunk marker (\r\n)
+        const char* chunkEndMarker = "\r\n";
+        if (send(fd, chunkEndMarker, 2, 0) == -1) {
+            close(fd);
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+            multi_fd.erase(fd);
+			std::cout << "eighth erase\n";
+            return;
+        }
+
+        if (bytesRead < BUFFER_SIZE)
+            _file.seekg(-bytesRead, std::ios::cur);
+    }
+    else {
+        // Send the last chunk (zero length)
+        const char* lastChunk = "0\r\n\r\n";
+        if (send(fd, lastChunk, 5, 0) == -1) {
+            close(fd);
+            epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+            multi_fd.erase(fd);
+			std::cout << "ninth erase\n";
+            return;
+        }
+    }
+}//chunked end
 	else if (!_isDirectory){
+
 		std::ostringstream  response_stream;
 		_contentType = "text/html";
 		createHeader(_fileSize);
@@ -330,10 +384,11 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 			close(fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
+			std::cout << "tenth erase\n";
 			return ;
 		}
     	response_stream << "<!DOCTYPE html>\n"
-                    << "<html>\n"`
+                    << "<html>\n"
                     << "<head>\n"
                     << "<style>\n"
                     << "    body {\n"
@@ -358,5 +413,6 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 		strcpy(buff, _response.c_str());
 		send(fd, buff, _response.length(), 0);
 	}
+	std::cout << "everything is done\n";
 	return ;
 }
