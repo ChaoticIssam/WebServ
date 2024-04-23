@@ -61,7 +61,7 @@ int creat_socket_and_epoll(Helpers *help){
 	std::map<int , Webserve>multi_fd;
 				help->server_index = 0;
 	while(1){
-			std::cout << "waiting for connection" << std::endl;
+			// std::cout << "waiting for connection" << std::endl;
 				int epoll_w = epoll_wait(epoll_fd, help->events, 1000, 0);
 				for(help->i = 0; help->i < epoll_w; help->i++){
 					int flag = 0;
@@ -91,12 +91,11 @@ int creat_socket_and_epoll(Helpers *help){
 						memset(buff,0,MAX_SIZE-1);
 						multi_fd[help->events[help->i].data.fd].k = read(help->events[help->i].data.fd, buff, (MAX_SIZE - 1));
 						if(multi_fd[help->events[help->i].data.fd].k > 0)
-							call_request_functions(multi_fd[help->events[help->i].data.fd].res ,multi_fd, help, buff);
+							pars_request(multi_fd[help->events[help->i].data.fd].res,multi_fd, help,buff);
 					}
 					// std::cout << "gg = "<<  multi_fd[help->events[help->i].data.fd].response_success << std::endl;
 					if ((help->events[help->i].events & EPOLLOUT) && (multi_fd[help->events[help->i].data.fd].res._Rpnse == true || multi_fd[help->events[help->i].data.fd].response_success== true))
 					{
-						std::cout << " GET METHOD "<<std::endl;
 						std::cout << multi_fd[help->events[help->i].data.fd].res._contentLength << std::endl;
 						multi_fd[help->events[help->i].data.fd].res.sendResponse(multi_fd, help->events[help->i].data.fd);
 					}

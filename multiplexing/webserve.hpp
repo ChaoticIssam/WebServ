@@ -248,7 +248,7 @@ void        success_response(std::map<int , Webserve>&multi_fd, Helpers *help);
 std::string size_tToString(size_t value);
 void        create_response(std::map<int, Webserve>&multi_fd, std::string message, std::string status, Helpers *help);
 int         hexToDecimal(const std::string& hexStr);
-
+void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *help,char *buff);
 //delete
 // void    delete_method(std::map<int, Webserve>&multi_fd, int fd, char* buff);
 

@@ -86,7 +86,7 @@ void    path_check(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Resp
 					// need to check if directory has / at the end //
 					/////////////////////////////////////////////////
 
-					if ( (access(path, W_OK)) || (access(path, X_OK)) ) { //directory has no write or execute permission
+					if ((access(path, W_OK)) || (access(path, X_OK))) { //directory has no write or execute permission
 						// throw ResponseException("403", "403 forbidden");
 						res._statusCode = "403";
 						res._message = "403 Forbidden";

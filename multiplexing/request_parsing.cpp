@@ -244,9 +244,6 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 		//cgi
 		// std::cout << "status code: " << res._statusCode << " and message : " << res._message <<std::endl;
 		res.uriParss(multi_fd, fd, help);
-		// if (res._statusCode != "200")
-		// 	res.sendResponse(multi_fd, fd);
-		// std::cout << "here is the uri: " << res._URI << std::endl;
 		if(multi_fd[fd].HTTP_method == "POST")
 		{
 			if(multi_fd[fd].flag1 == 1)
@@ -260,8 +257,8 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 		else if (multi_fd[fd].HTTP_method == "DELETE") {
 		    delete_method(multi_fd, fd, help, res);
 		}
-		std::cout << "\t\t\t status code: " << res._statusCode << " and message : " << res._message <<std::endl;
-		std::cout << ">>>>>>>>>>>>> here is the uri: " << res._URI << std::endl;
+		// std::cout << "\t\t\t status code: " << res._statusCode << " and message : " << res._message <<std::endl;
+		// std::cout << ">>>>>>>>>>>>> here is the uri: " << res._URI << std::endl;
 		// res.sendResponse(multi_fd, fd);
 		// cgi_handler(multi_fd, fd, help, res);
 		// std::cout << "here is the content length: " << multi_fd[fd].content_l << std::endl;
@@ -269,6 +266,6 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 
 }
 
-void    call_request_functions(Response &res,std::map<int , Webserve>&multi_fd, Helpers *help,char *buff) {
-	pars_request(res,multi_fd, help,buff);
-}
+// void    call_request_functions(Response &res,std::map<int , Webserve>&multi_fd, Helpers *help,char *buff) {
+// 	pars_request(res,multi_fd, help,buff);
+// }
