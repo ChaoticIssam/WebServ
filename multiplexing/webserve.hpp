@@ -238,11 +238,11 @@ class   Webserve{
 
 int         creat_socket_and_epoll(Helpers *help);
 void        post_cases(std::map<int , Webserve>&multi_fd, Helpers *help);
-void        content_type(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res);
-std::string check_ext(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res);
+int        content_type(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res);
+std::string check_ext(std::map<int , Webserve>&multi_fd, Helpers *help);
 void        setOut(std::map<int, Webserve>& multi_fd, Helpers* help);
 void        get_the_content_of_the_file(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res);
-void        content_length(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res);
+int        content_length(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res);
 void        call_request_functions(Response &res, std::map<int , Webserve>&multi_fd, Helpers *help,char *buff);
 void        success_response(std::map<int , Webserve>&multi_fd, Helpers *help);
 std::string size_tToString(size_t value);

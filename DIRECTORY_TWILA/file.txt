@@ -1,0 +1,33 @@
+socket : 4
+4 127.0.0.1
+here is the uri mn request : /Response
+status code : 200
+URI: /Response
+hna >>>URI: /Response/
+---- 2222 ----status code : 301 and message : Moved Permanently
+1 -- here is the uri: /home/chaotic/Desktop/v1/Response/
+type: 0
+1 - status code : 301
+ GET METHOD 
+
+status code : 301
+the old uri: /home/chaotic/Desktop/v1/Response/
+301
+------------>>>>>>>>/Response/
+here is the uri mn request : /Response/
+status code : 200
+URI: /Response/
+---- 2222 ----status code : 200 and message : OK
+1 -- here is the uri: /home/chaotic/Desktop/v1/Response/
+type: 0
+1 - status code : 200
+ GET METHOD 
+
+status code : 200
+the old uri: /home/chaotic/Desktop/v1/Response/
+everything is done
+ GET METHOD 
+
+status code : 200
+the old uri: /home/chaotic/Desktop/v1/Response/
+isDirectory: 

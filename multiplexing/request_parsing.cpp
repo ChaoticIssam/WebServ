@@ -23,7 +23,7 @@ void    create_the_request_file(std::map<int , Webserve>&multi_fd, Helpers *help
 	
 }
 
-void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string temporaire, Response& res){
+int    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string temporaire, Response& res){
 	size_t pos0;
 	int fd = help->events[help->i].data.fd;
 
@@ -33,14 +33,17 @@ void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::strin
 		{
 			temporaire = multi_fd[fd].header.substr(pos0 + 4, multi_fd[fd].header.length() - (pos0 + 4));
 			multi_fd[fd].headers = multi_fd[fd].header.substr(0, pos0);
-			content_length(multi_fd, help, res);
-            content_type(multi_fd, help, res);
-            if(multi_fd[fd].HTTP_method == "POST") 
+			if(content_length(multi_fd, help, res) == -1)
+				return (-1);
+            if(content_type(multi_fd, help, res) == -1)
+				return (-1);
+            if(multi_fd[fd].HTTP_method == "POST")
 			{
 				post_cases(multi_fd, help);
 				if(multi_fd[fd].content_type == 'L')
 				{
-					content_length(multi_fd, help, res);
+					// if(multi_fd[fd].content_Length > _srv[help->server_index]._maxLength)
+						//Request Entity Too Large || 413
 					multi_fd[fd].dec = atoi(multi_fd[fd].len.c_str());
 					multi_fd[fd].dec -= (temporaire.length());
 					multi_fd[fd].Body.append(temporaire.c_str(),temporaire.size());
@@ -55,16 +58,17 @@ void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::strin
 					{
 						multi_fd[fd].i = pos0;
 						for(; multi_fd[fd].header[multi_fd[fd].i + 4] != '\r'; multi_fd[fd].i++);
-						// std::cout << "---------------------------> "  << i - pos0 << std::endl;
 						multi_fd[fd].chunk_len = multi_fd[fd].header.substr(pos0 + 4, multi_fd[fd].i);
 						multi_fd[fd].chunk_len_dec = hexToDecimal(multi_fd[fd].chunk_len);
 						multi_fd[fd].dec = multi_fd[fd].chunk_len_dec;
+						// multi_fd[fd].max_length += multi_fd[fd].chunk_len_dec;
+						// std::cout << "print real length here : " << multi_fd[fd].content_Length << std::endl;
+						// std::cout << "print length here : " << multi_fd[fd].max_length << std::endl;
+						// if(multi_fd[fd].max_length > _srv[help->server_index]._maxLength)
+							// Request Entity Too Large || 413
 						temporaire = temporaire.substr(multi_fd[fd].i - pos0 + 2, pos1 - (multi_fd[fd].i - pos0));
-						// temporaire = temporaire.substr(0,pos1);
 						multi_fd[fd].dec -= (temporaire.length());
 						multi_fd[fd].first_chunk.append(temporaire.c_str(),temporaire.size());
-						// temporaire = multi_fd[fd].Body.substr(0, multi_fd[fd].Body.length());
-						// multi_fd[fd].flag2 = 1;
 						if(multi_fd[fd].dec <= 0){
 							create_the_request_file(multi_fd, help, res);
 							return ;
@@ -77,13 +81,15 @@ void    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::strin
 				multi_fd[fd].flag1 = 1;
 			}
 		}
+		return (0);
 }
 
 void    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff, Response& res){
 	int fd = help->events[help->i].data.fd;
 	if(multi_fd[fd].content_type == 'L'){
+			// if(multi_fd[fd].content_Length > _srv[help->server_index]._maxLength)
+				//Request Entity Too Large || 413
 			multi_fd[fd].Body.append(buff,multi_fd[fd].k);
-			// std::cout << "here is the body: " << multi_fd[fd].Body << std::endl;
 			multi_fd[fd].dec -= multi_fd[fd].k;
 			if(multi_fd[fd].dec <= 0){
 				create_the_request_file(multi_fd, help, res);
@@ -102,7 +108,11 @@ void    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buf
 				multi_fd[fd].chunk_len = multi_fd[fd].first_chunk.substr(0, p);
 				multi_fd[fd].chunk_len_dec = hexToDecimal(multi_fd[fd].chunk_len);
 				multi_fd[fd].dec1 = multi_fd[fd].chunk_len_dec;
-
+				// multi_fd[fd].max_length += multi_fd[fd].chunk_len_dec;
+				// std::cout << "print real length here : " << multi_fd[fd].content_Length << std::endl;
+				// std::cout << "print length here : " << multi_fd[fd].max_length << std::endl;
+				// if(multi_fd[fd].max_length > _srv[help->server_index]._maxLength)
+					// Request Entity Too Large || 413
 				if(multi_fd[fd].dec1 == 0){
 					create_the_request_file(multi_fd, help, res);
 					return ;
@@ -149,7 +159,10 @@ void    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buf
 						multi_fd[fd].chunk_len = multi_fd[fd].first_chunk.substr(0, p);
 						multi_fd[fd].chunk_len_dec = hexToDecimal(multi_fd[fd].chunk_len);
 						multi_fd[fd].dec1 = multi_fd[fd].chunk_len_dec;
-
+						// multi_fd[fd].max_length += multi_fd[fd].chunk_len_dec;
+						// std::cout << "print length here1 : " << multi_fd[fd].max_length << std::endl;
+						// if(multi_fd[fd].max_length > _srv[help->server_index]._maxLength)
+							// Request Entity Too Large || 413
 						if(multi_fd[fd].dec1 == 0){
 							create_the_request_file(multi_fd, help, res);
 							return ;
@@ -220,9 +233,7 @@ std::string size_tToString(size_t value) {
 
 void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *help,char *buff){
 	int fd = help->events[help->i].data.fd;
-	// Response res;
-	
-	// std::cout << "here is the buff: " << buff << std::endl;
+
 	std::string newbuffer, bufbody, bufbody1;
 	if (buff != NULL) {
 		std::string temporaire(buff,multi_fd[fd].k);
@@ -230,8 +241,8 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 			request_line(multi_fd, help, buff, temporaire);
 		if(multi_fd[fd].flag1 != 1 && multi_fd[fd].flag == 1)
 		{
-			// std::cout << "heeeeeeeeeeeeeeeer\n";
-			get_headers(multi_fd, help, temporaire, res);
+			if(get_headers(multi_fd, help, temporaire, res) == -1)
+				return ;
 			if(multi_fd[fd].HTTP_method == "POST")
 				return ;
 		}
@@ -249,7 +260,6 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 			if(multi_fd[fd].flag1 == 1)
 				get_Body_part(multi_fd, help, buff, res);
 		}
-		// //hna ghanzid get method dyali//
 		else if (multi_fd[fd].HTTP_method == "GET") {
 			res.getMethod(multi_fd, fd, help);
 			res._Rpnse = true;

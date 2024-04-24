@@ -26,11 +26,11 @@ Response::~Response(){
 }
 
 bool Response::checkLocation(std::string &path)   {
-    // std::cout << "path is : " << path << std::endl;
-    if (access(path.c_str(), F_OK) == 0){
-		// std::cout << "dkhlat true" << std::endl;
+	std::cout << "path: ................ " << path << std::endl;
+	std::cout << "F - access: " << access(path.c_str(), F_OK) << std::endl;
+	std::cout << "R - access: " << access(path.c_str(), R_OK) << std::endl;
+    if (access(path.c_str(), F_OK) == 0 && access(path.c_str(), R_OK) == 0)
         return true;
-	}
     else {
         size_t pos = path.find("%20");
         while (pos != std::string::npos)   {
@@ -103,34 +103,15 @@ void	Response::findFiles(int fd){
 	_statusCode = "200";
 	_message = "OK";
 	_isDirectory = true;
-	// closedir(dir);
-    // std::string tmp = "/home/";
-    // tmp += "chaotic";
-    // tmp += "/.cache/autoindex.html"; 
-    // _file.open(tmp.c_str(), std::ios::out | std::ios::trunc);
-    // if (!_file.good())  {
-	// 	std::cout << "not good" << std::endl;
-	// 	_statusCode = "403";
-	// 	_message = "Forbidden";
-	// 	return ;
-    // }
     _file.write(file.c_str(), file.length());
-    // std::stringstream sg;
-    // sg << file.length();
-    // sg >> _contentLength;
-	std::string response = "HTTP/1.1 200 OK\r\n";
-	response += "Content-Type: text/html\r\n";
-	// response += "Content-Length: " + std::to_string(file.length()) + "\r\n";
-	response += "\r\n";
+	std::string response;
 	response += file;
 	if (send(fd, response.c_str(), response.length(), 0) == -1){
 		close(fd);
 		epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
-		// multi_fd.erase(fd);
 		return ;
 	}
     _file.close();
-    // _file.open(tmp.c_str(), std::ios::in);
 }
 
 void    Response::convertExtention() {
@@ -216,29 +197,27 @@ void Response::createHeaderChunk() {
     _responseHead += "Content-Type: " + _contentType + "\r\n";
 	_responseHead += "Transfer-Encoding: chunked\r\n"; 
     _responseHead += "\r\n";
-	// std::cout << ">>>>>>>>>>>>>>>>> contentLength: " << contentLength << std::endl;
-    // _responseHead += "Content-Length: " + to_string(contentLength) + "\r\n\r\n";
     _isHeader = true;
 }
-
 
 
 void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 	char *buff = new char[BUFFER_SIZE];
 	if(!_isHeader){
-		std::cout << "HEADER if condition \n";
-		if (_statusCode == "301"){
-			std::cout << "301 if condition \n";
-			createHeader(1000);
-			send(fd, _responseHead.c_str(), _responseHead.length(), 0);
-			close(fd);
-			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
-			multi_fd.erase(fd);
-			std::cout << "first erase\n";
-			return ;
-		}
-		if (_statusCode == "404" || _statusCode == "403" || _statusCode == "500" || _statusCode == "501" || _statusCode == "505"){
-			std::cout << "404 if condition \n";
+	if (_statusCode == "301") {
+		std::cout << "301\n";
+		std::string relativeURI = _URI.substr(_URI.find("/", 22));
+		_responseHead += "HTTP/1.1 " + _statusCode + " " + _message + "\r\n";
+		_responseHead += "Location: " + relativeURI + "\r\n";
+		_responseHead += "Content-Length: " + to_string(0) + "\r\n\r\n";
+		_isHeader = true;
+		send(fd, _responseHead.c_str(), _responseHead.length(), 0);
+		close(fd);
+		epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+		multi_fd.erase(fd);
+		return;
+	}
+		if (_statusCode == "404" || _statusCode == "403" || _statusCode == "500"){
 			std::string send_message;
 			std::ostringstream  response_stream;
 			_contentType = "text/html";
@@ -269,29 +248,23 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 			send_message = response_stream.str();
 			strcpy(buff, send_message.c_str());
 			send(fd, buff, send_message.length(), 0);
-
 			close(fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
-			std::cout << "second erase\n";
 			return ;
 			
 		}
-		std::cout << "FINNA OPEN FILE \n";
 		_file.open(_URI.c_str(), std::ios::in | std::ios::out);
 		if (!_file.good() && !_isDirectory) {
-			std::cout << "file not good condition" << std::endl;
 			_errorfileGood = errno;
 			_statusCode = "403";
 			_message = "Forbidden";
 			if (!_isHeader){
-				std::cout << "NO HEADER condition\n";
 				createHeader(_fileSize);
 				if (send(fd, _responseHead.c_str(), _responseHead.length(), 0) == -1){
 					close(fd);
 					epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 					multi_fd.erase(fd);
-					std::cout << "third erase\n";
 					return ;
 				}
 			}
@@ -311,17 +284,14 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 			close(fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
-			std::cout << "fourth erase\n";
 			return ;
 		}
 	}
 	else if (_statusCode == "200" && _isDirectory){
-		std::cout << "isDirectory: " << std::endl;
 			findFiles(fd);
 			close (fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
-			std::cout << "fifth erase\n";
 			return ;
 	}
 else if ((_statusCode == "200") && !_isDirectory) {//chunked start
@@ -330,32 +300,26 @@ else if ((_statusCode == "200") && !_isDirectory) {//chunked start
     std::streamsize bytesRead = _file.gcount();
     if (bytesRead > 0) {
         std::ostringstream chunkHeader;
-        chunkHeader << std::hex << bytesRead << "\r\n"; // Chunk size in hexadecimal
+        chunkHeader << std::hex << bytesRead << "\r\n";
         std::string chunkHeaderStr = chunkHeader.str();
 
         if (send(fd, chunkHeaderStr.c_str(), chunkHeaderStr.size(), 0) == -1) {
             close(fd);
             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
             multi_fd.erase(fd);
-			std::cout << "sixth erase\n";
             return;
         }
-
         if (send(fd, buff, bytesRead, 0) == -1) {
             close(fd);
             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
             multi_fd.erase(fd);
-			std::cout << "seventh erase\n";
             return;
         }
-
-        // Send the end of chunk marker (\r\n)
         const char* chunkEndMarker = "\r\n";
         if (send(fd, chunkEndMarker, 2, 0) == -1) {
             close(fd);
             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
             multi_fd.erase(fd);
-			std::cout << "eighth erase\n";
             return;
         }
 
@@ -363,18 +327,16 @@ else if ((_statusCode == "200") && !_isDirectory) {//chunked start
             _file.seekg(-bytesRead, std::ios::cur);
     }
     else {
-        // Send the last chunk (zero length)
         const char* lastChunk = "0\r\n\r\n";
         if (send(fd, lastChunk, 5, 0) == -1) {
             close(fd);
             epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
             multi_fd.erase(fd);
-			std::cout << "ninth erase\n";
             return;
         }
     }
-}//chunked end
-	else if (!_isDirectory){
+}
+else if (!_isDirectory){
 
 		std::ostringstream  response_stream;
 		_contentType = "text/html";
@@ -384,7 +346,6 @@ else if ((_statusCode == "200") && !_isDirectory) {//chunked start
 			close(fd);
 			epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
 			multi_fd.erase(fd);
-			std::cout << "tenth erase\n";
 			return ;
 		}
     	response_stream << "<!DOCTYPE html>\n"
@@ -413,6 +374,5 @@ else if ((_statusCode == "200") && !_isDirectory) {//chunked start
 		strcpy(buff, _response.c_str());
 		send(fd, buff, _response.length(), 0);
 	}
-	std::cout << "everything is done\n";
 	return ;
 }

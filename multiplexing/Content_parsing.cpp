@@ -8,7 +8,7 @@ void    post_cases(std::map<int , Webserve>&multi_fd, Helpers *help){
         multi_fd[(help->events[help->i].data.fd)].content_type = 'L';
 }
 
-void    content_type(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res){
+int    content_type(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res){
     size_t pos1 = multi_fd[(help->events[help->i].data.fd)].headers.find("Content-Type: ");
     if(pos1 != std::string::npos)
     {
@@ -20,12 +20,16 @@ void    content_type(std::map<int , Webserve>&multi_fd, Helpers *help, Response&
         // throw ResponseException("400" ,"Bad Request");
         res._statusCode = "400";
         res._message = "400 Bad Request";
+        return(-1);
     }
+    return(0);
 }
 
-void    content_length(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res){
+
+int    content_length(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res){
     int fd = help->events[help->i].data.fd;
     size_t pos = multi_fd[fd].headers.find("Content-Length: ");
+    size_t pos1 = multi_fd[(help->events[help->i].data.fd)].headers.find("Transfer-Encoding: chunked");
     if(pos != std::string::npos)
     {
         std::string content_length = multi_fd[fd].headers.substr(pos, multi_fd[fd].headers.length());
@@ -35,19 +39,21 @@ void    content_length(std::map<int , Webserve>&multi_fd, Helpers *help, Respons
         if(multi_fd[fd].content_Length == 0 && multi_fd[fd].HTTP_method == "POST") {
             res._statusCode = "400";
             res._message = "400 Bad Request";
+            return(-1);
             // throw ResponseException("400" ,"Bad Request");
         }   
     }
-    else if (pos == std::string::npos && multi_fd[fd].HTTP_method == "POST"){
+    else if (pos == std::string::npos && multi_fd[fd].HTTP_method == "POST" && pos1 == std::string::npos){
         // throw ResponseException("400" ,"Bad Request");
         res._statusCode = "400";
         res._message = "400 Bad Request";
+        return(-1);
     }
+    return(0);
 }
 
-std::string check_ext(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res){
+std::string check_ext(std::map<int , Webserve>&multi_fd, Helpers *help){
     int fd = help->events[help->i].data.fd;
-    content_type(multi_fd, help, res);
     if(multi_fd[fd].content_Type == "image/png")
         return(".png");
     else if(multi_fd[fd].content_Type == "text/css")
@@ -91,7 +97,7 @@ void setOut(std::map<int, Webserve>& multi_fd, Helpers* help){
 void    get_the_content_of_the_file(std::map<int , Webserve>&multi_fd, Helpers *help, Response& res){
     setOut(multi_fd, help);
     int fd = help->events[help->i].data.fd;
-    multi_fd[fd].out += check_ext(multi_fd, help, res);
+    multi_fd[fd].out += check_ext(multi_fd, help);
     std::string directory = "uploads/";
     std::string fullPath = directory + multi_fd[fd].out;
     multi_fd[fd].out_file.open(fullPath.c_str(), std::ios::binary);
