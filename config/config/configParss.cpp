@@ -1,6 +1,35 @@
 #include "../../multiplexing/webserve.hpp"
 #include "stdio.h"
 
+configParss::configParss(){
+    _port = "";
+    _host = "";
+    _servernameTMP = "";
+    _errorPagenum = 0;
+    _errorPage = "";
+    _rootDirectory = "";
+    _rootIndex = "";
+    _maxLength = 1000;
+}
+
+location::location(){
+    _locationPath = "";
+    _postCheck = false;
+    _getCheck = false;
+    _deleteCheck = false;
+    _autoIndex = false;
+    _cgiStatus = false;
+    _rootDirectoryLocation = "";
+    _cgiExtensionHolder = "";
+    _cgiPathHolder = "";
+    _Index = "";
+    _return = "";
+    _uploadStore = "";
+}
+
+configParss::~configParss(){
+}
+
 void    configParss::setPort(std::string port){
     _port = port;
 }

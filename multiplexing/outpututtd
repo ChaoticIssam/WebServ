@@ -1,0 +1,11 @@
+has query , .php
+php, exists
+A = 7
+A = 8
+the child has exited
+here is the response: Name: fdsfsdf<br>Age: fdsfsdfs<br><html><body><h1>Received Data:</h1><p>Name: fdsfsdf</p><p>Age: fdsfsdfs</p></body></html>  
+php, exists
+A = 7
+A = 9
+the child has exited
+here is the response: Name: <br>Age: <br><html><body><h1>Received Data:</h1><p>Name: </p><p>Age: </p></body></html>  

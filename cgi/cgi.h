@@ -22,7 +22,6 @@ class cgi {
 private:
     std::string                         cgi_extension;
     std::string                         script_name;
-    std::string                         cgi_path;
     bool                                running;
     clock_t                             start;
     pid_t                               pid;
@@ -32,17 +31,20 @@ private:
     std::string                         extension;
 
 public:
+    std::string                         on_off;
+    std::string                         cgi_path;
     std::map<std::string, std::string>  env;
     std::string                         cgi_getter(void);
-    std::string                         cgi_body_getter(std::string file);
-    void                                path_getter(std::map<int, Webserve>&multi_fd, int fd, Response& res, Helpers *help);
-    void                                extension_getter(std::string url);
-    void                                env_setter(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, std::string script_filename);
+    int                                 path_getter(std::map<int, Webserve>&multi_fd, int fd, Response& res, Helpers *help);
+    void                                extension_getter(std::map<int, Webserve>&multi_fd, int fd, Response& res);
+    void                                env_setter(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, std::string script_filename, Response& res);
     void                                execute_cgi(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res);
-    // void    cgi_clean(std::map<int>)
+    int                                 cgiCheck(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res);
+    int                                 locationMatch(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res);
 };
 
-void    cgi_handler(std::map<int , Webserve>&mutli_fd, int fd, Helpers *help, Response& res);
-
+std::string                         cgi_body_getter(std::map<int, Webserve>&multi_fd, int fd, std::string file);
+int                                 cgi_handler(std::map<int , Webserve>&mutli_fd, int fd, Helpers *help, Response& res);
+void	                            parent_handler(std::map<int, Webserve>&multi_fd, int fd, Response& res);
 
 #endif

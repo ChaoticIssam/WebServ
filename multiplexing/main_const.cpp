@@ -1,6 +1,8 @@
 #include"webserve.hpp"
 
-Webserve::Webserve() : flag(0), flag1(0), flag2(0), response_success(0){
+Webserve::Webserve() : flag(0), flag1(0), flag2(0), response_success(0), error_response(0), max_length(0), time_out(clock()), post_cgi(0){
+    child_exited = 0;
+    running = 0;
 };
 Helpers::Helpers(){};
 
@@ -47,12 +49,16 @@ Webserve &Webserve::operator=(const Webserve &copy){
         this->flag1         = copy.flag1;
         this->flag          = copy.flag;
         this->flag2          = copy.flag2;
+        this->response_success = copy.response_success;
+        this->error_response = copy.error_response;
         this->dec           = copy.dec;
         this->chunk_len     = copy.chunk_len;
         this->chunk_len_dec = copy.chunk_len_dec;
         this->chunk_str = copy.chunk_str;
         this->response = copy.response;
+        this->max_length = copy.max_length;
         this->response_success = copy.response_success;
+        this->time_out = copy.time_out;
         return(*this);
     }
     return(*this);
@@ -63,14 +69,15 @@ int main(int ac, char **av){
 
     Helpers help;
     issam_main(ac, av, help);
-    struct sigaction sa = {};
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &sa, 0);
-    // std::cout << "lmain" << std::endl << std::endl << std::endl << std::endl;
-    if(creat_socket_and_epoll(&help)){
-        std::cout << "the socke couldnt be created ." << std::endl;
-        exit(1);
-    }
+        // exit(1);
+        struct sigaction sa = {};
+        sa.sa_handler = SIG_IGN;
+        sigaction(SIGPIPE, &sa, 0);
+        // std::cout << "lmain" << std::endl << std::endl << std::endl << std::endl;
+        if(creat_socket_and_epoll(&help)){
+            std::cerr << "the socket couldnt be created ." << std::endl;
+            exit(1);
+        }
 }
 
 Webserve::~Webserve(){};

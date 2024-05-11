@@ -3,8 +3,6 @@
 std::vector<configParss> _srv;
 
 int issam_main(int ac,  char **av, Helpers &help) {
-    // configParss help.obj;
-    // location    help.locationScoop;
     std::ifstream ifile;
     int lock_4 = 1;
     int lock_0 = 1;
@@ -74,7 +72,6 @@ int issam_main(int ac,  char **av, Helpers &help) {
 				ifile >> help.obj._rootDirectory;
 				if (!ifile.good())
 					throw   std::runtime_error("Error: something went wrong with the root directory config.");
-				// std::cout << "root_directory: " << help.obj._rootDirectory << std::endl;
 				continue;
 			}
             else if (file == "rootIndex: "){
@@ -103,6 +100,7 @@ int issam_main(int ac,  char **av, Helpers &help) {
                 help.locationScoop._getCheck = false;
                 help.locationScoop._deleteCheck = false;
 				help.locationScoop._cgiStatus = false;
+                help.locationScoop.on_off.clear();
 				help.locationScoop._rootDirectoryLocation.clear();
 				help.locationScoop._cgiPath.clear();
                 help.locationScoop._Index.clear();
@@ -150,7 +148,6 @@ int issam_main(int ac,  char **av, Helpers &help) {
 					else if (file == "root_directory:"){
 						Index++;
 						ifile >> help.locationScoop._rootDirectoryLocation;
-						// std::cout << "root_directory: " << help.locationScoop._rootDirectoryLocation << std::endl;
 						if (!ifile.good())
 							throw   std::runtime_error("Error: something went wrong with the root directory config.");
 						continue;
@@ -180,10 +177,14 @@ int issam_main(int ac,  char **av, Helpers &help) {
                     else if (file == "cgiStatus:"){
                          Index++;
                         ifile >> file;
-                        if (file == "on")
+                        if (file == "on") {
                             help.locationScoop._cgiStatus = true;
-                        else if (file == "off")
+                            help.locationScoop.on_off = "on";
+                        }
+                        else if (file == "off") {
                             help.locationScoop._cgiStatus = false;
+                            help.locationScoop.on_off = "off";
+                        }
 						else
 							throw std::runtime_error("Error: something went wrong with the cgi status config.");
                         Index++;
@@ -198,7 +199,6 @@ int issam_main(int ac,  char **av, Helpers &help) {
                         if (!ifile.good())
                             throw   std::runtime_error("Error: something went wrong with the cgi path config.");
                         help.locationScoop._cgiPath[help.locationScoop._cgiExtensionHolder] = help.locationScoop._cgiPathHolder;
-                        // std::cout << "first: " << help.locationScoop._cgiPath[help.locationScoop._cgiExtensionHolder]<< " === second: " << help.locationScoop._cgiExtensionHolder << std::endl;
                         continue;
                     }
                     else if (file == "}"){
@@ -214,7 +214,7 @@ int issam_main(int ac,  char **av, Helpers &help) {
                 _srv.push_back(help.obj);
                 Index = 0;
                 lock_4 = 1;
-                continue ;
+                continue;
             }
             else
                 throw std::runtime_error("Error:");
@@ -231,7 +231,8 @@ int issam_main(int ac,  char **av, Helpers &help) {
     }
     catch(std::runtime_error &e){
             std::cout << "Error:\n something went wrong during reading the configFile." << std::endl;
-            return -1;   
+            // return -1; 
+            exit(1);
     }
     return 0;
 }

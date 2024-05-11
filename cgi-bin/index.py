@@ -1,10 +1,23 @@
+#!/usr/bin/python
 
-print("<!DOCTYPE html>")
-print("<html>")
-print("<head>")
-print("<title>Hello, World!</title>")
-print("</head>")
-print("<body>")
-print("<h1>Hello, World!</h1>")
-print("</body>")
-print("</html>")
+# Import modules for CGI handling 
+import warnings
+import cgi, cgitb
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+form = cgi.FieldStorage() 
+
+# Get data from fields
+first_name = form.getvalue('name')
+last_name  = form.getvalue('title')
+
+print ("Content-type:text/html\r\n\r\n")
+print ("<html>")
+print ("<head>")
+print ("<title>Hello - Second CGI Program</title>")
+print ("</head>")
+print ("<body>")
+print ("<h2>Hello %s %s</h2>"%(first_name, last_name))
+print ("</body>")
+print ("</html>")

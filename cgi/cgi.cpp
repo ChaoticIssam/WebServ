@@ -1,262 +1,270 @@
-#include "cgi.h"
+// #include "response.hpp"
+#include "../multiplexing/webserve.hpp"
 
-void    cgi::path_getter(std::map<int, Webserve>&multi_fd, int fd, Response& res, Helpers* help) {
-	size_t  query_pos = res._URI.find('?');//extrat the path id res._URI has ?
+void fill_envirements(std::map<int, Webserve> &multi_fd, int fd, cgi_args *cgi)
+{
+	std::string script;
+	std::string path;
 
-	std::cout << "uri before: " << res._URI << std::endl;
+	script = "SCRIPT_FILENAME=" + multi_fd[fd].res._URI ;
+	path = "PATH_INFO=" + multi_fd[fd].res._URI ;
+	if (multi_fd[fd].request_URI.find('?') != std::string::npos) {
+		int start_pos = multi_fd[fd].request_URI.find('?');
+		multi_fd[fd].query = "QUERY_STRING=";
+		multi_fd[fd].query += multi_fd[fd].request_URI.substr(start_pos + 1);
+	}
+	else {
+		multi_fd[fd].query = "QUERY_STRING=";
+		multi_fd[fd].query += strdup("");
+	}
+	std::stringstream ss; //extract the content length
+	ss << multi_fd[fd].content_Length;
+	std::string str = "CONTENT_LENGTH=";
+	str += ss.str();
+	std::string content_type = "CONTENT_TYPE=";
+	content_type += multi_fd[fd].content_Type;
+
+	if ((multi_fd[fd].res._URI.find(".php")) != std::string::npos || (multi_fd[fd].res._URI.find(".py")) != std::string::npos) {
+		cgi->args[0] = (char*)multi_fd[fd].cgi_c.cgi_path.c_str();
+	}
+	cgi->args[1] = (char*)multi_fd[fd].res._URI.c_str();
+	
+	cgi->args[2] = NULL;
+	if (multi_fd[fd].HTTP_method == "GET")
+	{
+
+		cgi->env[0] =(char *)"REQUEST_METHOD=GET" ;
+		cgi->env[1] = (char*)multi_fd[fd].query.c_str();
+		cgi->env[2] = (char*)"REDIRECT_STATUS=200";
+		cgi->env[3] = strdup(script.c_str());
+		cgi->env[4] = strdup(path.c_str());
+		cgi->env[5] = NULL;
+	}
+	else if (multi_fd[fd].HTTP_method == "POST")
+	{
+		cgi->env[0] =(char *)"REQUEST_METHOD=POST" ;
+		cgi->env[1] = strdup(str.c_str());
+		cgi->env[2] =  strdup(content_type.c_str());
+		cgi->env[3] = (char*)"REDIRECT_STATUS=200";
+		cgi->env[4] = strdup(script.c_str());
+		cgi->env[5] = strdup(path.c_str());
+		cgi->env[6] = (char *)"PHPRC=directorie/php.ini";
+
+		cgi->env[7] = NULL;
+	}
+}
+
+std::string get_absolute_path(const std::string& path) {
+	char resolved_path[PATH_MAX];
+	const char* c_path = path.c_str();
+	char* abs_path = realpath(c_path, resolved_path);
+	if (abs_path == NULL) {
+		throw ResponseException("404", "404 Not Found");
+	}
+	return std::string(resolved_path);
+}
+
+int	cgi::locationMatch(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res) {
+	(void)fd, (void)multi_fd;
+	size_t  query_pos = res._URI.find('?');//extrat the path if res._URI has ?
+
 	if (query_pos != std::string::npos) {
 		res._URI = res._URI.substr(0, query_pos);
 	}
-
 	for (std::vector<location>::iterator it = _srv[help->server_index]._locationScoops.begin(); it != _srv[help->server_index]._locationScoops.end(); it++) {
-		if (res._URI.find(it->_locationPath) != std::string::npos) {
-		std::cout << "url: " << res._URI << "     location name : " << it->_locationPath << std::endl;
-			int flag = 1;
-			status = it->_cgiStatus;
-			std::string index = it->_Index;
-			if (flag == 1 && status && (index == "index.php" || index == "index1.php" || index == "index1.py" || index == "index.py")) {
-				if (this->extension == ".php") { 
-					this->cgi_path = it->_cgiPath[".php"];
-					multi_fd[fd].extension = "php";
+		if (res._URI.find(it->_locationPath) != std::string::npos && it->_locationPath != "/") {
+			if (!it->on_off.empty()) {
+				this->on_off = it->on_off;
+				if (it->on_off == "on") {
+					if (multi_fd[fd].extension == ".php") {
+						if (!it->_cgiPath[".php"].empty()) {
+							this->cgi_path = get_absolute_path(it->_cgiPath[".php"]);
+						}
+						else
+							throw ResponseException("403", "403 Forbidden");
+					}
+					else if (multi_fd[fd].extension == ".py") {
+						if (!it->_cgiPath[".py"].empty()) {
+							this->cgi_path = get_absolute_path(it->_cgiPath[".py"]);
+							// std::cout << "py, exists" << std::endl;
+						}
+						else
+							throw ResponseException("403", "403 Forbidden");
+					}
+					return 1;
 				}
-				else if (this->extension == ".py") {
-					this->cgi_path = it->_cgiPath[".py"];
-					multi_fd[fd].extension = "py";
-				}
+				else if (it->on_off == "off")
+					return 2;
 			}
+			else
+				return 2;
 		}
 	}
+	return 0;
 }
 
-void    cgi::extension_getter(std::string url) {
-	size_t  dot_pos = url.find_last_of('.');
+bool isDirectory(const char* path) {
+	struct stat info;
+	if (stat(path, &info) != 0) {
+		return false; // Failed to get file info
+	}
+	return S_ISDIR(info.st_mode);
+}
 
-	if (dot_pos != std::string::npos && dot_pos < url.length() - 1) {
-		this->extension = url.substr(dot_pos);
+void    cgi::extension_getter(std::map<int, Webserve>&multi_fd, int fd, Response& res) {
+
+	size_t  start_pos = res._URI.find_last_of('.');
+	if (start_pos != std::string::npos) {
+		if (res._URI.find('?') != std::string::npos) {
+			if (res._URI.find(".py") != std::string::npos ){
+				multi_fd[fd].extension = ".py";
+			}
+			if ( res._URI.find(".php") != std::string::npos){
+				multi_fd[fd].extension = ".php";
+			}
+		}
+		else
+			multi_fd[fd].extension = res._URI.substr(start_pos);
 	}
 }
 
-void    cgi::env_setter(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, std::string script_filename) {
-	this->env["REQUEST_METHOD"] = multi_fd[fd].HTTP_method;
-	this->env["REQUEST_URI"] = multi_fd[fd].request_URI;
-	this->env["SERVER_PROTOCOL"] = "HTTP/1.1";
-	this->env["SERVER_NAME"] = help->obj.getHost();
-	this->env["SERVER_PORT"] = help->obj.getPort();
-	this->env["REDIRECT_STATUS"] = "200";
-	this->env["SCRIPT_FILENAME"] = script_filename;
-	this->env["GATEWAY_INTERFACE"] = "CGI/1.1";
+int	cgi::cgiCheck(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res) {
+	if (isDirectory(res._URI.c_str())) {//uri is directory
+		return 1;
+	}
+	else { //uri is file
+		this->extension_getter(multi_fd, fd, res);
+		// std::cout << "here is the extension: " << multi_fd[fd].extension << std::endl;
+		if (multi_fd[fd].extension.empty()) {
+				return 1;
+		}
+		else if (!multi_fd[fd].extension.empty() && (multi_fd[fd].extension == ".php" || multi_fd[fd].extension == ".py")) {
+			if (locationMatch(multi_fd, fd, help, res) == 1) {
+				std::string path = res._URI;
+				if (access(path.c_str(), X_OK) != 0) { //check script permissions
+					// std::cout << "Here is the path: " << path << " ====> " << this->on_off << std::endl;
+					// std::cout << "the cgi has no permissions\n";
+					throw ResponseException ("500", "500 Internal Server Error");
+				}
+				// std::cout << "location exists and cgi on\n";
+				return 0;
+			}
+			else if (locationMatch(multi_fd, fd, help, res) == 0) {
+				// std::cout << "location does not exists" << std::endl;
+				return 1;
+			}
+			else if (locationMatch(multi_fd, fd, help, res) == 2) {
+				// std::cout << "location exists and cgi off\n";
+				// res._listContent = 1;
+				return 1;
+			}
+		}
+		else {
+			return 1;
+		}
+	}
+	return 0;
+}
 
-	if (multi_fd[fd].request_URI.find('?') != std::string::npos) { //URI has query string
-		int start_pos = multi_fd[fd].request_URI.find('?');
-		int end_pos = multi_fd[fd].request_URI.find('#');
-		this->env["QUERY_STRING"] = multi_fd[fd].request_URI.substr(start_pos, end_pos);
+void forking(int fd, std::map<int, Webserve> &multi_fd, Helpers *help)
+{
+	if (multi_fd[fd].cgi_c.cgiCheck(multi_fd, fd, help, multi_fd[fd].res) == 0){
+		multi_fd[fd].running = 1;
+		if (pipe(multi_fd[fd].pipefd) == -1)
+			perror("pipe");
+		multi_fd[fd].pid = fork();
+		if (multi_fd[fd].pid  == -1)
+			perror("fork");
 	}
 	else
-		this->env["QUERY_STRING"] = "NULL";
-	if (multi_fd[fd].HTTP_method == "POST") {
-		this->env["CONTENT_TYPE"] = multi_fd[fd].content_Type;
-		this->env["CONTENT_LENGTH"] = multi_fd[fd].content_Length;
-		std::cout << "here is the content type : " << this->env["CONTENT_TYPE"] << "\nTHE CONTENT LENGTH : " << this->env["CONTENT_LENGTH"] << std::endl;
+		multi_fd[fd].res._listContent = 1;
+}
+
+void child_proc(int client_fd, std::map<int, Webserve> &multi_fd)
+{
+	cgi_args args;
+	close(multi_fd[client_fd].pipefd[0]); 
+	dup2(multi_fd[client_fd].pipefd[1], 1); 
+	close(multi_fd[client_fd].pipefd[1]);
+	int fd ;
+	if(multi_fd[client_fd].HTTP_method == "POST")
+	{
+		fd = open(multi_fd[client_fd].outfile_name.c_str(), O_RDONLY | std::ios::binary);
+		int fd1 = open(multi_fd[client_fd].outfile_name.c_str(), O_RDONLY | std::ios::binary);
+		const int buffer_size = 4096;
+		char buffer[buffer_size];
+		read(fd1, buffer, buffer_size);
+
+        // std::cerr<<buffer << std::endl;
+		dup2(fd, 0);
+		// close (fd);
+	}   
+	fill_envirements(multi_fd, client_fd, &args);
+	if (execve(args.args[0], args.args, args.env) == -1)
+	{
+		perror("exec = ");
+	}
+	exit(127);
+}
+
+int checking_timeout(int client_fd, std::map<int, Webserve>&multi_fd)
+{
+	// std::cout << "enter to time out \n";
+	pid_t result = waitpid(multi_fd[client_fd].pid, &multi_fd[client_fd].status, WNOHANG);
+	if (result == 0)
+	{
+		clock_t end = clock();
+		double elapsedTime = static_cast<double>(end - multi_fd[client_fd].startTime) / CLOCKS_PER_SEC;
+		if(elapsedTime >= 10)
+		{
+			std::remove(multi_fd[client_fd].outfile_name.c_str());
+			close(multi_fd[client_fd].pipefd[0]); 
+			kill(multi_fd[client_fd].pid, SIGKILL);
+			waitpid(multi_fd[client_fd].pid, 0, 0);
+			throw ResponseException("508", "loop Detected");
+		} 
 	}
 	else {
-		this->env["CONTENT_TYPE"] = "NULL";
-		this->env["CONTENT_LENGTH"] = "NULL";
+		multi_fd[client_fd].child_exited = 1;
 	}
-	if (multi_fd[fd].request_URI.find('.') != std::string::npos) { //extract the extension
-		int start_pos = multi_fd[fd].request_URI.find_last_of('.') + 1;
-		int end_pos = multi_fd[fd].request_URI.find('?');
-		this->extension = multi_fd[fd].request_URI.substr(start_pos, end_pos);
-	}
+	return 1;
 }
 
-std::string cgi::cgi_body_getter(std::string file) {
-	std::ifstream cgi_file(file.c_str());
-
-	if (!cgi_file.is_open()) {
-		std::cerr << "Error openning the file" << std::endl;
-		throw ResponseException("500", "Internal Server Error");
+int cgi_response(int epoll_fd, int client_fd, std::map<int, Webserve>&multi_fd, Response& res)
+{
+	(void)res;
+	char buffer[100000];
+	ssize_t bytesRead;
+	if ((bytesRead = read(multi_fd[client_fd].pipefd[0], buffer, 99999)) > 0)
+	{
+		std::string body;
+		std::string response;
+		body.append(buffer,bytesRead);
+		int body_start = body.find("\r\n\r\n") + 4;
+		body = body.substr(body_start);
+		// response += "HTTP/1.1 ";
+		// response += " 200";
+		// response += " ok \r\n";
+		// response += "Content-Type: text/html\r\n";
+		// response += "Content-Length: " + size_tToString(body.size()) + "\r\n";
+		res._contentType = "text/html";
+		res.createHeader(size_tToString(body.size()));
+		response += res._responseHead;
+		response += body;
+		// std::cout << "Header: " << response << std::endl;
+		send(client_fd, response.c_str(), response.size(), 0);
+		if (std::remove(multi_fd[client_fd].outfile_name.c_str()) == 0) {
+			// std::cout << multi_fd[client_fd].outfile_name << " removed successfully\n";
+		}
+		epoll_ctl(epoll_fd, EPOLL_CTL_DEL, multi_fd[client_fd].pipefd[0], NULL);
+		close(multi_fd[client_fd].pipefd[0]);
+		close(client_fd);
+		epoll_ctl(epoll_fd,EPOLL_CTL_DEL,client_fd,NULL);
+		multi_fd.erase(client_fd);
 	}
-
-	std::ostringstream  oss;
-	oss << cgi_file.rdbuf();
-	cgi_file.close();
-	std::string file_outcome = oss.str();
-
-	//extract the body
-	std::string	 body;
-	if (this->extension == "php") {
-		size_t  pos = file_outcome.find("\n\n");
-		if (pos == std::string::npos) {
-			std::cerr << "Blank line not found" << std::endl;
-			exit (1);
-		}
-		body = file_outcome.substr(pos + 2);
+	if(bytesRead <= 0)
+	{
+		return 0;
 	}
-	else
-		body = file_outcome;
-	return body;
-}
-
-size_t calculateContentLength(const std::string& content) {
-    std::ostringstream oss;
-    oss << content;
-    return oss.str().length();
-}
-
-void   cgi::execute_cgi(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res) {
-	std::ostringstream oss;
-	oss << fd;
-	std::string fd_str = oss.str();
-	if (!this->running) {
-		this->running = true;
-		this->extension_getter(res._URI);
-		path_getter(multi_fd, fd, res, help);
-		std::string path = res._URI;
-		if (access(path.c_str(), X_OK) != 0) { //check script permissions
-			res._statusCode = "500";
-			res._message = "Internal Server Error1";
-		}
-		this->env_setter(multi_fd, fd, help, path);
-		time_t startTime = std::time(NULL);
-		// std::cout << "here is the start time: " << startTime << std::endl;
-		this->pid = fork();
-		if (this->pid == -1) {
-			res._statusCode = "500";
-			res._message = "Internal Server Error2";
-		}
-		if (this->pid == 0) {
-			//file existing check
-			struct stat buufer;
-			if ((stat(this->cgi_path.c_str(), &buufer) == -1) || (stat(path.c_str(), &buufer) == -1)) {
-				std::cout << "problem with : " << this->cgi_path << " paths doesn't exist\n";
-			}
-			
-			std::string command_line = "echo $$ > pid_file" + fd_str + " && " + this->cgi_path + " " + path + " > " + "script_output" + fd_str;
-
-			// Allocate memory for the array of pointers
-			char **av = new char*[4];
-			av[3] = NULL;
-			av[0] = new char[3];
-			strcpy(av[0], "sh");
-			av[1] = new char[3];
-			strcpy(av[1], "-c");
-			av[2] = new char[command_line.length() + 1];
-			strcpy(av[2], command_line.c_str());
-			
-			//convert map env variables to char**
-			char **envp = new char*[this->env.size() + 1];
-			int i = 0;
-			for (std::map<std::string, std::string>::iterator it = this->env.begin(); it != this->env.end(); it++)
-			{
-				envp[i] = new char[it->first.length() + it->second.length() + 2];
-				strcpy(envp[i], (it->first + "=" + it->second).c_str());
-				// std::cout << "env[] : " << envp[i] << std::endl;
-				i++;
-			}
-			envp[i] = NULL;
-			// std::cout << "command line : " << command_line << std::endl; 
-			if (execve("/bin/sh", av, envp) == -1)
-			{
-				for (int j = 0; j < i; j++)
-					delete[] envp[j];
-				delete[] envp;
-				delete[] av;
-				exit(EXIT_FAILURE);
-			}
-		}
-		else if (this->pid > 0) {
-			int count = 0;
-			while (true) {
-				std::cout << "true " << "counter: "  << count << "\n";
-				count++;
-				sleep(1);
-				pid_t result = waitpid(this->pid, &this->status, WNOHANG);
-				// if (result == -1) {
-				// 	throw ResponseException("500", "Internal Server Error3");
-				// 	break ;
-				// }
-				if (result > 0) {
-					std::remove(("pid_file" + fd_str).c_str());
-					if (WEXITSTATUS(this->status) && WEXITSTATUS(this->status) == EXIT_FAILURE) {
-						res._statusCode = "500";
-						res._message = "Internal Server Error4";
-					}
-					std::ifstream tmp(("script_output" + fd_str).c_str());
-					if (tmp.is_open()) {
-						struct stat info;
-						if (stat(("script_output" + fd_str).c_str(), &info) == 0) {
-							std::string	s_file = "script_output" + fd_str;
-							std::string body = cgi_body_getter(s_file);
-							res._contentLength = calculateContentLength(body);
-							res._cgiBody = body.c_str();
-							std::cout << "here is the cgi body : " << res._cgiBody << ", and the content length: " << res._contentLength << std::endl;
-							res._statusCode = "200";
-							res._message = "Success";
-							res._contentType = "text/html";
-						}
-						break ;
-					}
-				}
-				else {
-					time_t endTime = std::time(NULL);
-					time_t elapsedTime = endTime - startTime;
-					if (elapsedTime > 5) {
-						std::string filename = "pid_file" + fd_str;
-						std::ifstream fd(filename.c_str());
-						std::string fd_line;
-						std::getline(fd, fd_line);
-						fd.close();
-						std::remove(filename.c_str());
-						std::remove(("script_output" + fd_str).c_str());
-						pid_t pid = std::atoi(fd_line.c_str());
-						if (pid != 0) {
-							if (kill(pid, SIGTERM) == 0) {
-								res._statusCode = "508";
-								res._message = "Loop Detected";
-								break ;
-							}
-						}
-						res._statusCode = "508";
-						res._message = "Loop Detected";
-						break ;
-					}
-					// break ;
-				}
-			}
-		}
-	}
-}
-
-std::string cgi::cgi_getter(void) {
-	return this->cgi_body;
-}
-
-void    cgi_handler(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res) {
-
-	cgi cgi_c;
-
-	// for (std::vector<location>::iterator it = help->obj._locationScoops.begin(); it != help->obj._locationScoops.end(); it++) {
-	// 	if (multi_fd[fd].request_URI.find(it->_locationPath) == 0) {
-	// 		flag = 1;
-	// 		status = it->_cgiStatus;
-	// 		index = it->_Index;
-	// 		if (flag == 1 && status && index == "index.php") {
-	// 			cgi_c.execute_cgi(multi_fd, fd, help, it);
-	// 		}
-	// 	}
-	// }
-	// std::cout << "here is the extension: " << res._extensions[res._ext] << std::endl;
-	// cgi_c.extension_getter(res._URI);
-	// std::cout << "here is the extension : " << cgi_c.extension << std::endl;
-	// std::cout << "here is "
-	cgi_c.execute_cgi(multi_fd, fd, help, res);
-	// if (flag == 0) {
-	// 	if (multi_fd[fd].request_URI.find(help->obj._rootDirectory) == 0) {
-	// 		flag = 2;
-	// 	}
-	// }
-	// if (flag == 2) {
-	// 	//need to handle the case when cgi exists on the server root directory
-	// 	;
-	// }
+	return 0;
 }
