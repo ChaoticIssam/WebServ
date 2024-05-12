@@ -49,6 +49,26 @@ void    create_the_request_file(std::map<int , Webserve>&multi_fd, Helpers *help
 	
 }
 
+size_t str_to_size_t(const std::string& str) {
+    size_t result = 0;
+    bool is_negative = false;
+    size_t i = 0;
+
+    if (str[0] == '-') {
+        is_negative = true;
+        i = 1;
+    }
+
+    for (; i < str.length(); ++i) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            result = result * 10 + (str[i] - '0');
+        } else {
+            throw std::invalid_argument("Invalid input");
+        }
+    }
+
+    return is_negative ? -result : result;
+}
 int    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string temporaire, Response& res){
 	size_t pos0;
 	
@@ -79,7 +99,9 @@ int    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string
 					return -1;
 				if(multi_fd[fd].content_type == 'L')
 				{
+
 					if(multi_fd[fd].content_Length > _srv[help->server_index]._maxLength){
+						std::cout << "--> " << multi_fd[fd].content_Length << " | " <<  _srv[help->server_index]._maxLength << std::endl;
 						res._statusCode = "413";
 						res._message = "413 Request Entity Too Large";
 						res._contentType = "text/html";
@@ -88,12 +110,14 @@ int    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string
 						// Request Entity Too Large || 413
 					}
 
-					multi_fd[fd].dec = atoi(multi_fd[fd].len.c_str());
+					multi_fd[fd].dec = str_to_size_t(multi_fd[fd].len.c_str());
+					// std::cout << "hnaya : " << multi_fd[fd].dec << " | " << multi_fd[fd].len.c_str() << std::endl;
 					multi_fd[fd].dec -= (temporaire.length());
+					// exit(1);
 					multi_fd[fd].Body.append(temporaire.c_str(),temporaire.size());
 					if(multi_fd[fd].dec < 0)
 						multi_fd[fd].Body = multi_fd[fd].Body.substr(0, multi_fd[fd].content_Length);
-					if(multi_fd[fd].dec <= 0){
+					if(multi_fd[fd].dec == 0){
 						multi_fd[fd].Body.append("\0");
 						create_the_request_file(multi_fd, help, res);
 						return 0;
@@ -170,6 +194,8 @@ int    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 				multi_fd[fd].chunk_len = multi_fd[fd].first_chunk.substr(0, p);
 				multi_fd[fd].chunk_len_dec = hexToDecimal(multi_fd[fd].chunk_len);
 				multi_fd[fd].dec1 = multi_fd[fd].chunk_len_dec;
+				// std::cout << "dec 1 : " << multi_fd[fd].dec1  << " | " << multi_fd[fd].chunk_len << std::endl;
+				// exit(1);
 				multi_fd[fd].max_length += multi_fd[fd].chunk_len_dec;
 				if(multi_fd[fd].max_length > _srv[help->server_index]._maxLength)
 					return (-1);
@@ -186,6 +212,7 @@ int    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 			else
 			{
 				multi_fd[fd].dec1 -= multi_fd[fd].k;
+				
 				if(multi_fd[fd].dec1 == 0)
 				{
 					multi_fd[fd].first_chunk.append(buff,multi_fd[fd].k);
@@ -193,6 +220,9 @@ int    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 					multi_fd[fd].Body.append(multi_fd[fd].first_chunk, multi_fd[fd].first_chunk.length());
 					multi_fd[fd].first_chunk.clear();
 					multi_fd[fd].flag2 = 0;
+					// std::cout << "dec 1 : " << multi_fd[fd].dec1  << " | " << multi_fd[fd].chunk_len << std::endl;
+					// exit(1);
+
 				
 				}
 				else if(multi_fd[fd].dec1 < 0)
@@ -220,10 +250,12 @@ int    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 						multi_fd[fd].chunk_len = multi_fd[fd].first_chunk.substr(0, p);
 						multi_fd[fd].chunk_len_dec = hexToDecimal(multi_fd[fd].chunk_len);
 						multi_fd[fd].dec1 = multi_fd[fd].chunk_len_dec;
+						// std::cout << "dec 2 : " << multi_fd[fd].dec1  << " | " << multi_fd[fd].chunk_len << std::endl;
+						// exit(1);
 						multi_fd[fd].max_length += multi_fd[fd].chunk_len_dec;
 						if(multi_fd[fd].max_length > _srv[help->server_index]._maxLength)
 							return (-1);
-
+						
 						if(multi_fd[fd].dec1 == 0){
 							create_the_request_file(multi_fd, help, res);
 							return (0);
@@ -233,8 +265,12 @@ int    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 						multi_fd[fd].flag2 = 1;
 					}
 				}
-				else if(multi_fd[fd].dec1 > 0)
+				else if(multi_fd[fd].dec1 > 0){
+					// usleep(5000);
+					// std::cout << "dec 3 : " << multi_fd[fd].dec1  << " | " << multi_fd[fd].chunk_len << std::endl;
+					// exit(1);
 					multi_fd[fd].first_chunk.append(buff,multi_fd[fd].k);
+				}
 			}                
 		}
 		return (0);
@@ -271,13 +307,12 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 
 			if(get_headers(multi_fd, help, temporaire, res) == -1){
 				if(!res._Rpnse){
-					
 					res._statusCode = "400";
 					res._message = "400 Bad Request";
 					res._contentType = "text/html";
 					res._Rpnse = true;
 				}
-				if(!res._Method){
+				if(!res._Method && !res._Rpnse){
 					res._statusCode = "404";
 					res._message = "404 Not Found";
 					res._contentType = "text/html";
@@ -335,7 +370,7 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 		}
 		delete_method(multi_fd, fd, help, res);
 	}
-	else if (res._statusCode == "403"){
+	else if (res._statusCode == "403" || res._isReturn){
 		res._Rpnse = true;
 		return ;
 	}

@@ -12,6 +12,20 @@ void Response::getMethod(std::map<int, Webserve>& multi_fd, int fd, Helpers* hel
 			_message = "Forbidden";
 			return ;
 		}
+		else if (multi_fd[fd].res._isReturn){
+			std::string check = multi_fd[fd].res._URI.substr(0,7);
+			std::string	check_sec = multi_fd[fd].res._URI.substr(0,8);
+			if ((check == "http://" && multi_fd[fd].res._URI.size() > 7) || (check_sec == "https://" && multi_fd[fd].res._URI.size() > 8)){
+				_statusCode = "301";
+				_message = "Moved Permanently";
+				return;
+			}
+			else{
+				_statusCode = "404";
+				_message = "Not Found";
+				return ;
+			}
+		}
 		else{
 			_statusCode = "404";
 			_message = "Not Found";
@@ -46,7 +60,6 @@ void Response::getMethod(std::map<int, Webserve>& multi_fd, int fd, Helpers* hel
 			_contentType = "text/plain";
 		else
 			_contentType = _extensions[extension];
-		std::cout << "Extension: " << _contentType << std::endl;
 		_statusCode = "200";
 		_message = "OK";
 	}

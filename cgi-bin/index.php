@@ -34,7 +34,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         echo "</body></html>";
     }
 } else {
-    // Handle other HTTP methods or provide an error message
     header("HTTP/1.1 405 Method Not Allowed");
     echo "Method not allowed";
 }

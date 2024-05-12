@@ -20,11 +20,6 @@ class Webserve;
 
 class cgi {
 private:
-    std::string                         cgi_extension;
-    std::string                         script_name;
-    bool                                running;
-    clock_t                             start;
-    pid_t                               pid;
     int                                 status;
     int                                 file_length;
     std::string                         cgi_body;
@@ -35,7 +30,7 @@ public:
     std::string                         cgi_path;
     std::map<std::string, std::string>  env;
     std::string                         cgi_getter(void);
-    int                                 path_getter(std::map<int, Webserve>&multi_fd, int fd, Response& res, Helpers *help);
+    int                                 path_getter(std::map<int, Webserve>&multi_fd, int fd, Response& res, Helpers help);
     void                                extension_getter(std::map<int, Webserve>&multi_fd, int fd, Response& res);
     void                                env_setter(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, std::string script_filename, Response& res);
     void                                execute_cgi(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res);
@@ -45,6 +40,6 @@ public:
 
 std::string                         cgi_body_getter(std::map<int, Webserve>&multi_fd, int fd, std::string file);
 int                                 cgi_handler(std::map<int , Webserve>&mutli_fd, int fd, Helpers *help, Response& res);
-void	                            parent_handler(std::map<int, Webserve>&multi_fd, int fd, Response& res);
+void                                parent_handler(std::map<int, Webserve>&multi_fd, int fd, Response& res);
 
 #endif

@@ -12,7 +12,6 @@
 #include <cstring>
 #include <cstdlib>
 #include "../../Response/Res.hpp"
-// #include "../Request.h"
 #include "../webserve.hpp"
 
 class Response;
@@ -35,6 +34,5 @@ public:
 };
 
 void    delete_method(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res);
-
 
 #endif

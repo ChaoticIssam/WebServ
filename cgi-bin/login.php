@@ -1,25 +1,19 @@
 <?php
-// Start or resume the session
+
 session_start();
 
-// Check if a username is already set in the session
 if (isset($_SESSION['username']) && !empty($_SESSION['username'])) {
-    // If yes, redirect to the welcome page
     header('Location: ./welcome.php');
     exit();
 }
 
-// Check if the form has been submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validate the submitted form data (you may want to add more validation)
     $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
     $title = filter_input(INPUT_POST, 'title', FILTER_SANITIZE_STRING);
 
-    // Save the username and title in the session
     $_SESSION['username'] = $username;
     $_SESSION['title'] = $title;
 
-    // Redirect to the welcome page
     header('Location: welcome.php');
     exit();
 }

@@ -15,7 +15,6 @@
 #include <sstream>
 #include <cctype>
 #include <vector>
-// #include "../delete_req_cgi/Request/Request.h"
 #include "delete/delete_method.h"
 #include "../config/config/configParss.hpp"
 #include "../cgi/cgi.h"
@@ -31,8 +30,6 @@
 # include <fcntl.h>
 #include "../config/config/configParss.hpp"
 # include <filesystem>
-
-// # include "../delete_req_cgi/Request/Request.h"
 # include "../multiplexing/delete/delete_method.h"
 # include "../get_method/GetMethod.hpp"
 
@@ -62,9 +59,9 @@ class Response {
 	int                         _listContent;
 	size_t                      _bodyLength;
 	int 						_serverIndex;
-	// configParss _config;
-	// location    _locationScoop;
+	bool						_isReturn;
 	bool                        _isCgi;
+	std::string					_return;
 	std::string                 _cgiBody;
 	std::string                 _USER;
 	std::string                 _statusCode;
@@ -143,7 +140,7 @@ class   configParss{
 		std::string _rootDirectory;
 		std::string _rootIndex;
 		std::string _maxLength_str;
-		int _maxLength;
+		size_t _maxLength;
 		configParss();
 		~configParss();
 		std::string readConfigFile(void);
@@ -198,25 +195,23 @@ class   Webserve{
 		std::string headers;
 		std::string Body;
 		std::string body;
-		std::string len; //content_length;
+		std::string len;
 		std::string line;
 		std::string header;
 		std::string update0;
 		std::string update;
 		std::string content_Type;
-		int content_Length;
+		size_t content_Length;
 		std::string out;
 		std::map<int , std::string>multi_fd;
 		std::ofstream out_file;
 		std::ofstream cgi_file;
-
-		// std::string buffer;
 		Response    res;
 		char        buffer[MAX_SIZE];
 		int         readed_buff;
 		int         count;
 		int         k;
-		int         dec;
+		size_t         dec;
 		int         dec1;
 		int         i;
 		int         j;
@@ -227,7 +222,7 @@ class   Webserve{
 		// chunked 
 		std::string chunk_len;
 		std::string chunk_str;
-		int         chunk_len_dec;
+		size_t         chunk_len_dec;
 		std::string first_chunk;
 		// response
 		std::string   response;
@@ -244,9 +239,9 @@ class   Webserve{
 		std::vector<location>   locations;
 
 		//delete
-		// class   Resource request_resource;
-		int max_length;
+		size_t max_length;
 		clock_t time_out;
+
 		// cgi
 		bool    postCheck;
 		bool    getCheck;
@@ -263,7 +258,6 @@ class   Webserve{
 		cgi         cgi_c;
 		int         child_exited;
 		std::string	outfile_name;
-		// int			status;
 		std::string query;
 };
 
@@ -287,17 +281,9 @@ std::string size_tToString(size_t value);
 void        create_response(std::map<int, Webserve>&multi_fd, std::string message, std::string status, Helpers *help);
 int         hexToDecimal(const std::string& hexStr);
 void    	pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *help,char *buff);
-// void    fill_envirements(cgi_args *cgi, std::map<int, Webserve> &multi_fd, int client_fd);
-void        forking( int client_fd, std::map<int, Webserve> &multi_fd, Helpers *help);
-void        child_proc(int client_fd, std::map<int, Webserve> &multi_fd);
-int         checking_timeout(int client_fd, std::map<int, Webserve>&multi_fd);
-int			timeoutRes(std::string message, std::string status, int fd, std::map<int, Webserve>&multi_fd);
+void        forker( int client_fd, std::map<int, Webserve> &multi_fd, Helpers *help);
+void        child_exec(int client_fd, std::map<int, Webserve> &multi_fd);
+int         timeOut(int client_fd, std::map<int, Webserve>&multi_fd);
+int			timeoutRes(std::string message, std::string status, int fd, std::map<int, Webserve>&multi_fd, Response &res);
 int 		cgi_response(int epoll_fd, int client_fd, std::map<int, Webserve>&multi_fd, Response& res);
-// int     cgi_response(epol *ep, int client_fd, std::map<int, Webserve> &req,Response& resp);
-
-//delete
-// void    delete_method(std::map<int, Webserve>&multi_fd, int fd, char* buff);
-
-//Response
-// std::string cgi_body_getter(std::string file);
-// std::string get_Cgi_response();
+size_t 		str_to_size_t(const std::string& str);

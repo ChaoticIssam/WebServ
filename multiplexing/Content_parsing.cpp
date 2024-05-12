@@ -44,7 +44,7 @@ int    content_length(std::map<int , Webserve>&multi_fd, Helpers *help, Response
 		std::string content_length = multi_fd[fd].headers.substr(pos, multi_fd[fd].headers.length());
 		pos =  content_length.find("\r\n");
 		multi_fd[fd].len = content_length.substr(strlen("Content-Length: "), pos - strlen("Content-Length: "));
-		multi_fd[fd].content_Length = atoi(multi_fd[fd].len.c_str());
+		multi_fd[fd].content_Length = str_to_size_t(multi_fd[fd].len.c_str());
 		if(multi_fd[fd].content_Length == 0 && multi_fd[fd].HTTP_method == "POST") {
 			res._statusCode = "400";
 			res._message = "400 Bad Request";
@@ -125,6 +125,8 @@ void    get_the_content_of_the_file(std::map<int , Webserve>&multi_fd, Helpers *
 			multi_fd[fd].out_file.write(body.c_str(), body.size());
 			multi_fd[fd].out_file.close();
 			// throw ResponseException("200", "OK");
+			// std::cout << "dekhel hnaya \n";
+
 			multi_fd[help->events[help->i].data.fd].response_success = true;
 			res._statusCode = "201";
 			res._message = "Success";

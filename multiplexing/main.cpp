@@ -23,7 +23,6 @@ int is_cgi(std::map<int, Webserve> &multi_fd, int fd)
 
 int creat_socket_and_epoll(Helpers *help)
 {
-	// create socket and epool instence .
 	struct epoll_event multipl;
 	struct sockaddr_in addresses;
 	help->s = 0;
@@ -35,7 +34,6 @@ int creat_socket_and_epoll(Helpers *help)
 	for (std::vector<configParss>::iterator it = _srv.begin(); it != _srv.end(); it++)
 	{
 		help->sosocket = socket(AF_INET, SOCK_STREAM, 0);
-		// std::cout << "socket : " << help->sosocket << std::endl;
 		if (help->sosocket == -1)
 		{
 			std::cerr << "error socket" << std::endl;
@@ -52,11 +50,9 @@ int creat_socket_and_epoll(Helpers *help)
 		}
 		addresses.sin_port = htons(atoi(it->getPort().c_str()));
 
-		// bind socket and bind many sockets with same ip address ND PORT.
 		int op = 1;
 		if (setsockopt(help->sosocket, SOL_SOCKET, SO_REUSEADDR, &op, sizeof(op)) == -1)
 		{
-			// perror("");
 			std::cerr << "setsockopt error" << std::endl;
 			return (1);
 		}
@@ -65,35 +61,41 @@ int creat_socket_and_epoll(Helpers *help)
 			std::cerr << "bind error" << std::endl;
 			return (1);
 		}
-		// now is the listen step where the socket listen to a connection .
 		if (listen(help->sosocket, 10) == -1)
 		{
 			std::cerr << "listen error" << std::endl;
 			return (1);
 		}
-		// help->socketat.resize(help->s + 1);
-		// std::cout << help->sosocket <<" " << it->getHost() << std::endl;
 		multipl.data.fd = help->sosocket;
 		help->socketat.push_back(help->sosocket);
 		multipl.events = EPOLLIN;
 		epoll_ctl(epoll_fd, EPOLL_CTL_ADD, help->sosocket, &multipl);
-		// control the epoll with adding modifying or deleting a file discreptor;
 	}
 	std::map<int, Webserve> multi_fd;
 	while (1)
 	{
-		// signal(SIGPIPE, SIG_IGN);
-		// std::cerr << "wait\n";
-		int epoll_w = epoll_wait(epoll_fd, help->events, 1000, 0);
+		int epoll_w = epoll_wait(epoll_fd, help->events, 1000, -1);
 		help->server_index = 0;
 		for (help->i = 0; help->i < epoll_w; help->i++)
 		{
 			int flag = 0;
+			if(help->events[help->i].events & EPOLLERR || help->events[help->i].events & EPOLLHUP || help->events[help->i].events & EPOLLRDHUP)
+			{
+				if(multi_fd[help->events[help->i].data.fd].running == 1 && multi_fd[help->events[help->i].data.fd].child_exited == 0)
+				{
+					kill(multi_fd[help->events[help->i].data.fd].pid, SIGKILL);
+					waitpid(multi_fd[help->events[help->i].data.fd].pid, 0, 0);
+					close(multi_fd[help->events[help->i].data.fd].pipefd[0]);
+				}
+				epoll_ctl(epoll_fd, EPOLL_CTL_DEL, help->events[help->i].data.fd, NULL);
+				close(help->events[help->i].data.fd);
+				std::map<int, Webserve>::iterator it = multi_fd.find(help->events[help->i].data.fd);
+				if (it != multi_fd.end())
+					multi_fd.erase(it);
+				continue;
+			}
 			for (int l = 0; l < (int)help->socketat.size(); l++)
 			{
-			// std::cerr << "enter to getsflskdjflskdf: "  << epoll_w << "======= >" << count << std::endl;
-			// // sleep (1);
-			// count++;
 				int client_socket;
 				if (help->events[help->i].data.fd == help->socketat[l])
 				{
@@ -110,8 +112,9 @@ int creat_socket_and_epoll(Helpers *help)
 					multi_fd[help->events[help->i].data.fd] = Webserve();
 					multi_fd[help->events[help->i].data.fd].config = _srv[l];
 					flag = 1;
+					break;
 				}
-			}
+			} 
 			if (flag == 1)
 				continue;
 			if ((help->events[help->i].events & EPOLLIN) && !multi_fd[help->events[help->i].data.fd].response_success)
@@ -123,33 +126,31 @@ int creat_socket_and_epoll(Helpers *help)
 				if (multi_fd[help->events[help->i].data.fd].k > 0)
 					pars_request(multi_fd[help->events[help->i].data.fd].res, multi_fd, help, buff);
 			}
-			if ((help->events[help->i].events & EPOLLOUT) && (multi_fd[help->events[help->i].data.fd].res._Rpnse == true || multi_fd[help->events[help->i].data.fd].response_success == true || multi_fd[help->events[help->i].data.fd].error_response == true || (is_cgi(multi_fd, help->events[help->i].data.fd))))
+			if ((help->events[help->i].events & EPOLLOUT)  &&(multi_fd[help->events[help->i].data.fd].res._Rpnse == true || multi_fd[help->events[help->i].data.fd].response_success == true || multi_fd[help->events[help->i].data.fd].error_response == true || (is_cgi(multi_fd, help->events[help->i].data.fd))))
 			{
-				multi_fd[help->events[help->i].data.fd].time_out = clock();
+ 				multi_fd[help->events[help->i].data.fd].time_out = clock();
 				if( (is_cgi(multi_fd, help->events[help->i].data.fd)) && multi_fd[help->events[help->i].data.fd].running == 0 && multi_fd[help->events[help->i].data.fd].res._listContent == 0)
 				{
-					// std::cout << "Url: " << multi_fd[help->events[help->i].data.fd].res._URI << std::endl;
 					try
 					{
 						if (multi_fd[help->events[help->i].data.fd].running == 0)
 						{
-							forking(help->events[help->i].data.fd, multi_fd, help);
+							forker(help->events[help->i].data.fd, multi_fd, help);
 							multi_fd[help->events[help->i].data.fd].startTime = clock();
 						}
 						if (multi_fd[help->events[help->i].data.fd].pid == 0 && multi_fd[help->events[help->i].data.fd].res._listContent != 1)
 						{
-							std::cerr << "list content: " << multi_fd[help->events[help->i].data.fd].res._listContent << std::endl;
-							child_proc(help->events[help->i].data.fd, multi_fd);
+							child_exec(help->events[help->i].data.fd, multi_fd);
 						}
 						else
 						{
+							close(multi_fd[help->events[help->i].data.fd].pipefd[1]); 
 							continue;
 						}
 					}
 					catch(const ResponseException& e)
 					{
-						std::cout << "message: " << e.get_message() << " , status : " << e.get_status() << std::endl;
-						timeoutRes(e.get_message(), e.get_status(), help->events[help->i].data.fd, multi_fd);
+						timeoutRes(e.get_message(), e.get_status(), help->events[help->i].data.fd, multi_fd, multi_fd[help->events[help->i].data.fd].res);
 						continue;
 					}
 					
@@ -159,40 +160,26 @@ int creat_socket_and_epoll(Helpers *help)
 					
 					try
 					{
-						checking_timeout(help->events[help->i].data.fd, multi_fd);
+						timeOut(help->events[help->i].data.fd, multi_fd);
 					}
 					catch (const ResponseException &e)
 					{
-						std::cout << "message: " << e.get_message() << " , status : " << e.get_status() << std::endl;
-						timeoutRes(e.get_message(), e.get_status(), help->events[help->i].data.fd, multi_fd);
+						timeoutRes(e.get_message(), e.get_status(), help->events[help->i].data.fd, multi_fd, multi_fd[help->events[help->i].data.fd].res);
 						continue;
 					}
 				
 
 				}
-				std::cerr << "cgi : " << is_cgi(multi_fd, help->events[help->i].data.fd) << " , list content: " << multi_fd[help->events[help->i].data.fd].res._listContent << std::endl;
 				if (multi_fd[help->events[help->i].data.fd].child_exited == 1)
 				{
-					
-					// std::string message = "ok";
-					// std::string status = "200";
-					// std::cout << "chilf finished " <<std::endl;
-					// for(int i = 0 ;i < epoll_w ; i++ )
-					// 	if(multi_fd[help->events[help->i].data.fd].pipefd[0] == help->events[i].data.fd)
-							cgi_response(epoll_fd, help->events[help->i].data.fd, multi_fd, multi_fd[help->events[help->i].data.fd].res);
-					// timeoutRes(message, status, help->events[help->i].data.fd, multi_fd);
+					cgi_response(epoll_fd, help->events[help->i].data.fd, multi_fd, multi_fd[help->events[help->i].data.fd].res);
 					continue;
 				}
-				///////////
-				
 				if(!(is_cgi(multi_fd, help->events[help->i].data.fd)) || (is_cgi(multi_fd, help->events[help->i].data.fd) && multi_fd[help->events[help->i].data.fd].res._listContent == 1))
-				{
 					multi_fd[help->events[help->i].data.fd].res.sendResponse(multi_fd, help->events[help->i].data.fd);
-				}
 			}
 			if (((double)(clock() - multi_fd[help->events[help->i].data.fd].time_out)) / CLOCKS_PER_SEC > 20)
 			{
-				std::cout << "time : " << (((double)(clock() - multi_fd[help->events[help->i].data.fd].time_out)) / CLOCKS_PER_SEC) << std::endl;
 				multi_fd[help->events[help->i].data.fd].res._statusCode = "408";
 				multi_fd[help->events[help->i].data.fd].res._message = "408 Request Timeout";
 				multi_fd[help->events[help->i].data.fd].res._contentType = "text/html";
@@ -200,9 +187,8 @@ int creat_socket_and_epoll(Helpers *help)
 				multi_fd[help->events[help->i].data.fd].res.sendResponse(multi_fd, help->events[help->i].data.fd);
 				epoll_ctl(epoll_fd, EPOLL_CTL_DEL, help->events[help->i].data.fd, &multipl);
 				close(help->events[help->i].data.fd);
-				// 408 Request Timeout
-				// exit(1);
 			}
+			
 		}
 	}
 	close(help->sosocket);

@@ -20,7 +20,6 @@ bool Response::checkLocation(std::string &path)   {
 }
 
 void	Response::findFiles(int fd){
-	(void)fd;
 	DIR *dir;
 	struct dirent *d;
 	struct stat s;
@@ -140,15 +139,14 @@ void   Response::uriParss(std::map<int, Webserve>& multi_fd, int fd,Helpers* hel
             multi_fd[fd].post_upload = (*it)._uploadStore;
 
 			if (!(*it)._return.empty()){
-				std::cout << "return \n";
 				_URI.clear();
 				_URI = (*it)._return;
+				_isReturn = 1;
 				return;
             }
             else if (!(*it)._Index.empty() || !(*it)._rootDirectoryLocation.empty() || !help->obj._rootDirectory.empty()){
                 std::string first = _URI;
                 _URI.clear();
-				std::cout << "auto index: " << (*it)._autoIndex << std::endl;
                 if (!(*it)._rootDirectoryLocation.empty())
                     _URI = (*it)._rootDirectoryLocation + first;
                 else if (!help->obj._rootDirectory.empty())

@@ -3,18 +3,21 @@
 Response::Response(){
 	_statusCode = "200";
 	_message = "OK";
-	_contentType = "";
-	_contentLength = "";
-	_responseHead = "";
-	_response = "";
+	_contentType.clear();
+	_contentLength.clear();
+	_responseHead.clear();
+	_response.clear();
 	_errorfileGood = 0;
 	_file.open("", std::ios::in);
-	_oldURI = "";
-	_URI = "";
+	_oldURI.clear();
+	_URI.clear();
 	_extensions.clear();
 	_isDirectory = false;
 	_isHeader = false;
 	_fileSize = 0;
+	_isReturn = 0;
+	_Rpnse = false;
+	// _responseBUFFER = NULL;
 	convertExtention();
 }
 Response::~Response(){
@@ -23,9 +26,12 @@ Response::~Response(){
 
 void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 	char buff[BUFFER_SIZE];
-	std::cout << "Server index : " << _serverIndex << std::endl;
 	if (_statusCode == "301") {
-		std::string relativeURI = _URI.substr(_URI.find("/", 30));
+		std::string relativeURI = _URI;
+		if (!_isReturn){
+			relativeURI.clear();
+			relativeURI = _URI.substr(_URI.find("/", 30));
+		}
 		_responseHead += "HTTP/1.1 " + _statusCode + " " + _message + "\r\n";
 		_responseHead += "Location: " + relativeURI + "\r\n";
 		_responseHead += "Content-Length: " + to_string(0) + "\r\n\r\n";
@@ -42,10 +48,8 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 		return;
 	}
 	if ((_statusCode == "404" || _statusCode == "403" || _statusCode == "408" || _statusCode == "500"
-			|| _statusCode == "501" || _statusCode == "400" || _statusCode == "413"
+			|| _statusCode == "501" || _statusCode == "400" || _statusCode == "508" || _statusCode == "413"
 			|| (_statusCode == "201" && multi_fd[fd].response_success == true)) && !_errorfileGood) {
-				std::cout << "status : " << _statusCode << std::endl;
-				std::cout << "server index : " << _serverIndex << std::endl;
 		std::map<int, std::string>::iterator it = _srv[_serverIndex].errorHolder.find(atoi(_statusCode.c_str()));
 		if (it != _srv[_serverIndex].errorHolder.end()){
 			_URI = _srv[_serverIndex].errorHolder[atoi(_statusCode.c_str())];
@@ -171,21 +175,37 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 	return ;
 }
 
-int	timeoutRes(std::string message, std::string status, int fd, std::map<int, Webserve>&multi_fd) {
-	//check if the reponse is from a cgi program
-	// (void)status;
-	std::string body;
-	std::string response;
-	// Response	res;
-	// int fd = help->events[help->i].data.fd;
-	// int fd = help->events[help->i].data.fd;
-	// if (strcmp(res._cgiBody.c_str(), "NULL") != 0) {
-	// 	body = res._cgiBody;
-	// 	// std::cout << "here is the bodyyyyyyy" << body << " \n";
-	// }
-	// else {
+int	timeoutRes(std::string message, std::string status, int fd, std::map<int, Webserve>&multi_fd, Response &res) {
+	std::string response; 
+	std::ostringstream response_stream;
+	char buffer[4096];
+	std::cout << "message: " << message << " , status: " << status << std::endl;
+	std::map<int, std::string>::iterator it = _srv[res._serverIndex].errorHolder.find(atoi(status.c_str()));
+	if (it != _srv[res._serverIndex].errorHolder.end()){
+		res._URI = _srv[res._serverIndex].errorHolder[atoi(status.c_str())];
+		int _file = open(res._URI.c_str(), std::ios::in | std::ios::out);
+		if (_file < 0) {
+			std::cerr << "error: open" << std::endl;
+			return 1;
+		}
+		read(_file, buffer, 4096);
+		std::string body(buffer);
+		response += "HTTP/1.1 ";
+		response += " " + status + " ok \r\n";
+		response += "Content-Type: text/html\r\n";
+		response += "Content-Length: " + size_tToString(body.size()) + "\r\n";
+		response += "\r\n";
+		response += body;
+		std::cout << "here is the response: " << response.c_str() << std::endl;
+		if(send(fd, response.c_str(), response.size(), 0) == -1)
+			std::cerr << "send response failed ." << std::endl;
+		close(fd);
+		epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
+		multi_fd.erase(fd);
+	}
+	else {
+		std::string response;
 		std::ostringstream  response_stream;
-	// std::cout << "here is the message: " << message << ", and the status is : " << status << std::endl; 
 		response_stream << "<!DOCTYPE html>\n"
 						<< "<html>\n"
 						<< "<style>\n"
@@ -206,21 +226,18 @@ int	timeoutRes(std::string message, std::string status, int fd, std::map<int, We
 						<< "<h1>" << message << "</h1>\n"
 						<< "</body>\n"
 						<< "</html>\n";
-		body = response_stream.str();
-	// }
-
-	// std::cout << "here is the body: " << body << std::endl;
-	response += "HTTP/1.1 ";
-	response += " " + status + " ok \r\n";
-	response += "Content-Type: text/html\r\n";
-	response += "Content-Length: " + size_tToString(body.size()) + "\r\n";
-	response += "\r\n"; // Empty line to separate headers from body
-	response += body;
-	// std::cout << "=======\nHere is the response : " << response << std::endl;
-	if(send(fd, response.c_str(), response.size(), 0) == -1)
-		std::cout << "send response failed ." << std::endl;
-	close(fd);
-	epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
-	multi_fd.erase(fd);
+		std::string body = response_stream.str();
+		response += "HTTP/1.1 ";
+		response += " " + status + " ok \r\n";
+		response += "Content-Type: text/html\r\n";
+		response += "Content-Length: " + size_tToString(body.size()) + "\r\n";
+		response += "\r\n";
+		response += body;
+		if(send(fd, response.c_str(), response.size(), 0) == -1)
+			std::cerr << "send response failed ." << std::endl;
+		close(fd);
+		epoll_ctl(epoll_fd,EPOLL_CTL_DEL,fd,NULL);
+		multi_fd.erase(fd);
+	}
 	return 1;
 }

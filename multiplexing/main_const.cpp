@@ -1,8 +1,11 @@
 #include"webserve.hpp"
 
-Webserve::Webserve() : flag(0), flag1(0), flag2(0), response_success(0), error_response(0), max_length(0), time_out(clock()), post_cgi(0){
+Webserve::Webserve() : dec(0), dec1(0), flag(0), flag1(0), flag2(0), response_success(0), error_response(0), max_length(0), time_out(clock()), post_cgi(0){
     child_exited = 0;
     running = 0;
+    startTime = 0;
+    post_cgi = 0;
+    get_cgi = 0;
 };
 Helpers::Helpers(){};
 
@@ -27,9 +30,15 @@ Webserve &Webserve::operator=(const Webserve &copy){
         this->out           = copy.out;
         this->update0       = copy.update0;
         this->content_Type  = copy.content_Type;
+        this->startTime     = copy.startTime;
+        this->post_cgi      = copy.post_cgi;
+        this->get_cgi       = copy.get_cgi;
+        
+        // this->query         = copy.query;
         this->out_file.close();  // Close the current file if it's open
         this->out_file.clear();  // Clear any error flags
-
+        this->running = copy.running;
+        this->child_exited = copy.child_exited;
         // Reopen the file with the same name
         this->out_file.open((copy.out).c_str(), std::ios_base::binary);
         // Or copy the file name and open the file
@@ -45,6 +54,8 @@ Webserve &Webserve::operator=(const Webserve &copy){
         this->count         = copy.count;
         this->k             = copy.k;
         this->dec           = copy.dec;
+        this->dec1           = copy.dec1;
+
         this->content_type  = copy.content_type;
         this->flag1         = copy.flag1;
         this->flag          = copy.flag;

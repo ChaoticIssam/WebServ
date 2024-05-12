@@ -1,6 +1,6 @@
 // #include "delete_method.h"
-#include <sys/stat.h>
-#include <sys/types.h>
+// #include <sys/stat.h>
+// #include <sys/types.h>
 #include "delete_method.h"
 
 char getLastElement(const char* str) {
@@ -14,7 +14,6 @@ char getLastElement(const char* str) {
 }
 
 void    remove_dir(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, const char* path, Response& res) {
-	// std::cout << "here is the path " << path << std::endl;
 	DIR* dir = opendir(path);
 	if (!dir) {
 		std::cerr << "Can not open the directory  " << path << std::endl;
@@ -30,9 +29,7 @@ void    remove_dir(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, cons
 			else
 				entry_path = std::string(path) + entry->d_name;
 			if (entry->d_type == DT_DIR) {
-				// std::cout << "new path: " << entry_path << std::endl;
-				if ( (access(entry_path.c_str(), W_OK)) || (access(entry_path.c_str(), X_OK)) ) { //directory has no write or execute permission
-					// throw ResponseException("403", "403 forbidden");
+				if ( (access(entry_path.c_str(), W_OK)) || (access(entry_path.c_str(), X_OK)) ) {
 					res._statusCode = "403";
 					res._message = "403 Forbidden";
 				}
@@ -40,11 +37,8 @@ void    remove_dir(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, cons
 					remove_dir(multi_fd, fd, help, entry_path.c_str(), res);
 			}
 			else {
-				// std::cout << "here is the entry name: " << entry_path<< std::endl;
-				if (access(path, W_OK) == 0) { //file has no write permissions
-						// continue ;
+				if (access(entry_path.c_str(), W_OK) == 0) {
 					if (unlink(entry_path.c_str()) == -1) {
-						// throw ResponseException("400", "Bad Request");
 						res._statusCode = "400";
 						res._message = "400 Bad Request";
 						return ;
@@ -53,26 +47,15 @@ void    remove_dir(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, cons
 				else {
 					res._statusCode = "403";
 					res._message = "403 Forbidden";
-					// throw ResponseException("403", "403 forbidden");
 				}
 			}
 		}
 	}
 	closedir(dir);
-	// Remove the empty directory itself
 	if (rmdir(path) == 0) {
-		// throw ResponseException("200", "Ok");
-		// throw ResponseException("400", "Bad Request");
 		res._statusCode = "200";
 		res._message = "200 Ok";
 	}
-	// else {
-	// 	// multi_fd[fd].status = 200;
-	// 	// std::cout << "Directory removed correctly" << std::endl;
-	// 	throw ResponseException("200", "Ok");
-	// 	// res._statusCode = "200";
-	// 	// res._message = "200 Ok";
-	// }
 }
 
 void    path_check(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res) {
@@ -80,60 +63,38 @@ void    path_check(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Resp
 	if (!multi_fd[fd].resource.empty()) {
 		struct stat info;
 		const char *path = multi_fd[fd].resource.c_str();
-		// std::cout << "multi_fd[fd].resource : " << multi_fd[fd].resource << std::endl;
-		// std::cout << "here is the path: " << path << std::endl;
 
 		if (stat(path, &info) == 0) {
-			if (info.st_mode && S_ISDIR(info.st_mode)) { //the resource is directory
-				std::cout << "resource is directory : " << path << std::endl;
-				// if (multi_fd[fd].resource[multi_fd[fd].resource.length() - 1] != '/') {
-				// 	res._statusCode = "409";
-				// 	res._message = "409 Conflict Error";
-				// 	// throw ResponseException("409", "409 conflict");
-				// }
-				// else {
-					/////////////////////////////////////////////////
-					// need to check if directory has / at the end //
-					/////////////////////////////////////////////////
+			if (info.st_mode && S_ISDIR(info.st_mode)) {
 
-					if ( (access(path, W_OK)) || (access(path, X_OK)) ) { //directory has no write or execute permission
-						// throw ResponseException("403", "403 forbidden");
-						res._statusCode = "403";
-						res._message = "403 Forbidden";
-					}
-					else { // dierctory has the right permissions
-						remove_dir(multi_fd, fd, help, path, res);
-					}
-				// }
+				if ( (access(path, W_OK)) || (access(path, X_OK)) ) {
+					res._statusCode = "403";
+					res._message = "403 Forbidden";
+				}
+				else {
+					remove_dir(multi_fd, fd, help, path, res);
+				}
 
 			}
-			if (info.st_mode && S_ISREG(info.st_mode)) { //the resource is a regular file
-
-			/////////////////////////////////////////////////////////////////
-			// need to check if the file has / at the end, it mustn't work //
-			/////////////////////////////////////////////////////////////////
+			if (info.st_mode && S_ISREG(info.st_mode)) {
 
 				if (multi_fd[fd].resource[multi_fd[fd].resource.length() - 1] == '/') {
-					// throw ResponseException("404", "404 Not found");
 					res._statusCode = "404";
 					res._message = "404 Not Found";
 				}
 				else {
-					if (access(path, W_OK) == 0) { //the file has no write permission
-						// std::cout << "path ====> " << path << std::endl;
+					if (access(path, W_OK) == 0) { 
 						if (unlink(path) == -1) {
-							// throw ResponseException("400", "400 error");
 							res._statusCode = "400";
 							res._message = "400 Bad Request";
 						}
 						else {
-							// throw ResponseException("200", "Ok");
+							std::cout << "should enter here \n";
 							res._statusCode = "200";
 							res._message = "200 Ok";
 						}
 					}
-					else { // the requested file has the right permissions
-						// throw ResponseException("403", "403 forbidden");
+					else {
 						res._statusCode = "403";
 						res._message = "403 Forbidden";	
 					}
@@ -154,10 +115,6 @@ void	server_protection(std::map<int, Webserve>&multi_fd, int fd) {
 
 	if (multi_fd[fd].resource.find("/multiplexing") != std::string::npos)
 		throw ResponseException("403", "403 Forbidden");
-	if (multi_fd[fd].resource.find("/error_pages") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
-	if (multi_fd[fd].resource.find("/delete_req_cgi") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
 	if (multi_fd[fd].resource.find("/config") != std::string::npos) 
 		throw ResponseException("403", "403 Forbidden");
 	if (multi_fd[fd].resource.find("/cgi-bin") != std::string::npos) 
@@ -166,26 +123,36 @@ void	server_protection(std::map<int, Webserve>&multi_fd, int fd) {
 		throw ResponseException("403", "403 Forbidden");
 	if (multi_fd[fd].resource.find("/bin") != std::string::npos) 
 		throw ResponseException("403", "403 Forbidden");
+	if (multi_fd[fd].resource.find("/indexes") != std::string::npos) 
+		throw ResponseException("403", "403 Forbidden");
+	if (multi_fd[fd].resource.find("/get_method") != std::string::npos) 
+		throw ResponseException("403", "403 Forbidden");
 	if (multi_fd[fd].resource.find("/Response") != std::string::npos) 
+		throw ResponseException("403", "403 Forbidden");
+	if (multi_fd[fd].resource.find("/error") != std::string::npos) 
+		throw ResponseException("403", "403 Forbidden");
+	if (multi_fd[fd].resource.find("/Videos") != std::string::npos) 
 		throw ResponseException("403", "403 Forbidden");
 }
 
 void    delete_method(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res) {
-	(void) help;
 	multi_fd[fd].resource = res._URI;
-
-	// std::cout << "here is the request resource: " << multi_fd[fd].resource << std::endl;
 	try
 	{
 		const char	*relative_path = "../";
+		const char	*relative_path2 = res._URI.c_str();
 		char 		resolved_path[PATH_MAX];
+		char		resolved_path2[PATH_MAX];
 
 		char *result = realpath(relative_path, resolved_path);
-		if (result != NULL) {
+		char *result2 = realpath(relative_path2, resolved_path2);
+		if (result != NULL && result2 != NULL) {
 			std::string path(resolved_path);
-			// std::cout << "here is the new path " << path << "\n";
+			std::string urlPath(resolved_path2);
 			path += '/';
-			if( path == res._URI ) {
+			urlPath += '/';
+
+			if( urlPath.find(path) == std::string::npos || path == urlPath) {
 				throw ResponseException ("403", "403 Forbidden");
 			}
 		}
@@ -194,11 +161,9 @@ void    delete_method(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, R
 	}
 	catch (const ResponseException& e)
 	{
-		// std::cout << "Exception caught: " << e.get_message() << " ======> " << e.get_status() << '\n';
 		res._statusCode = e.get_status();
 		res._message = e.get_message();
 	}
-		std::cout << "Exception caught: " << res._statusCode << " ======> " << res._message << '\n';
-		res._contentType = "text/html";
-		res._Rpnse = true;
+	res._contentType = "text/html";
+	res._Rpnse = true;
 }

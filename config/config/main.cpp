@@ -84,6 +84,7 @@ int issam_main(int ac,  char **av, Helpers &help) {
             else if (file == "max_length:"){
                 Index++;
                 ifile >> help.obj._maxLength;
+                
                 if (!ifile.good())
                     throw   std::runtime_error("Error: something went wrong with the max length config.");
                 continue;
@@ -226,7 +227,8 @@ int issam_main(int ac,  char **av, Helpers &help) {
                 help.locationScoop._return = "";
         }
     }
-        if (help.obj.getPort().empty() || help.obj.getHost().empty())
+        int x = 0;
+        if (help.obj.getPort().empty() || help.obj.getHost().empty() || (_srv[x].getPort() == _srv[x + 1].getPort() && _srv[x].getHost() == _srv[x + 1].getHost()))
             throw std::runtime_error("Error:");
     }
     catch(std::runtime_error &e){
