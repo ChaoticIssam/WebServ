@@ -75,7 +75,6 @@ int creat_socket_and_epoll(Helpers *help)
 	while (1)
 	{
 		int epoll_w = epoll_wait(epoll_fd, help->events, 1000, -1);
-		help->server_index = 0;
 		for (help->i = 0; help->i < epoll_w; help->i++)
 		{
 			int flag = 0;

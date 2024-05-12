@@ -113,20 +113,15 @@ void    get_the_content_of_the_file(std::map<int , Webserve>&multi_fd, Helpers *
 	setOut(multi_fd, help);
 
 	int fd = help->events[help->i].data.fd;
-	// std::cerr << "=========> tyyyyype : "  << std::endl;
 	if(multi_fd[fd].post_cgi == false)
 	{
 		multi_fd[fd].out += check_ext(multi_fd, help);
-		// std::string directory = "uploads/";
 		std::string fullPath = multi_fd[fd].post_upload + "/" + multi_fd[fd].out;
 		multi_fd[fd].out_file.open(fullPath.c_str(), std::ios::binary);
 		if (multi_fd[fd].out_file.is_open()) {
 			const std::string& body = multi_fd[fd].Body;
 			multi_fd[fd].out_file.write(body.c_str(), body.size());
 			multi_fd[fd].out_file.close();
-			// throw ResponseException("200", "OK");
-			// std::cout << "dekhel hnaya \n";
-
 			multi_fd[help->events[help->i].data.fd].response_success = true;
 			res._statusCode = "201";
 			res._message = "Success";
@@ -142,7 +137,6 @@ void    get_the_content_of_the_file(std::map<int , Webserve>&multi_fd, Helpers *
 		multi_fd[fd].cgi_file.open(multi_fd[fd].outfile_name.c_str());
 		if (multi_fd[fd].cgi_file.is_open()) {
 			const std::string& body = multi_fd[fd].Body;
-			// std::cerr << "here is the body: " << multi_fd[fd].Body << std::endl;
 			multi_fd[fd].cgi_file << body;
 			multi_fd[fd].cgi_file.close();
 			multi_fd[fd].post_cgi = true;
@@ -150,11 +144,4 @@ void    get_the_content_of_the_file(std::map<int , Webserve>&multi_fd, Helpers *
 			std::cerr << "Error opening file '" << multi_fd[fd].outfile_name << "' for writing." << std::endl;
 		}
 	}
-	// else
-	// {
-	// 	res._statusCode = "501";
-	// 	res._message = "Not Implemented";
-	// 	res._contentType = "text/html";
-	// 	res._Rpnse = true;
-	// }
 }

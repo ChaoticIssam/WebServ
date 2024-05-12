@@ -89,7 +89,6 @@ void    path_check(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Resp
 							res._message = "400 Bad Request";
 						}
 						else {
-							std::cout << "should enter here \n";
 							res._statusCode = "200";
 							res._message = "200 Ok";
 						}

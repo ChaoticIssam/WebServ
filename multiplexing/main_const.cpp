@@ -80,11 +80,9 @@ int main(int ac, char **av){
 
     Helpers help;
     issam_main(ac, av, help);
-        // exit(1);
         struct sigaction sa = {};
         sa.sa_handler = SIG_IGN;
         sigaction(SIGPIPE, &sa, 0);
-        // std::cout << "lmain" << std::endl << std::endl << std::endl << std::endl;
         if(creat_socket_and_epoll(&help)){
             std::cerr << "the socket couldnt be created ." << std::endl;
             exit(1);
