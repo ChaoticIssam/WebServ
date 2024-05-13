@@ -7,7 +7,8 @@ Webserve::Webserve() : dec(0), dec1(0), flag(0), flag1(0), flag2(0), response_su
     post_cgi = 0;
     get_cgi = 0;
 };
-Helpers::Helpers(){};
+
+Helpers::Helpers() : server_index(0), sosocket(0), i(0), s(0){};
 
 Webserve::Webserve(const Webserve& copy){
     *this = copy;

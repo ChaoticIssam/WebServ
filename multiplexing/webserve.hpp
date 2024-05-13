@@ -61,6 +61,7 @@ class Response {
 	int 						_serverIndex;
 	bool						_isReturn;
 	bool                        _isCgi;
+	bool						_isHEADmethod;
 	std::string					_return;
 	std::string                 _cgiBody;
 	std::string                 _USER;
@@ -165,15 +166,15 @@ class   Helpers{
 	public :
 		Helpers();
 		~Helpers();
+		int server_index;
+		int sosocket;
 		int i;
 		int s;
-		int sosocket;
 		std::vector<int>socketat;
 		struct epoll_event multipl;
 		std::vector<struct epoll_event>epofd;
 
 		struct epoll_event events[1000];
-		int server_index;
 		//config info
 		class location locationScoop;
 		class configParss obj;
@@ -211,7 +212,7 @@ class   Webserve{
 		int         readed_buff;
 		int         count;
 		int         k;
-		size_t         dec;
+		ssize_t         dec;
 		int         dec1;
 		int         i;
 		int         j;

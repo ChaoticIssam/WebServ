@@ -7,9 +7,13 @@ int issam_main(int ac,  char **av, Helpers &help) {
     int lock_4 = 1;
     int lock_0 = 1;
     int lock_2 = 1;
-        if (ac != 2)
-            exit(1);
-    ifile.open(av[1]);
+    if (ac == 1){
+        ifile.open("./config/config/default.config");
+    }
+    else if (ac == 2)
+        ifile.open(av[1]);
+    else
+        exit(1);
     std::string file;
     try{   
     if (ifile.is_open()){
@@ -233,7 +237,6 @@ int issam_main(int ac,  char **av, Helpers &help) {
     }
     catch(std::runtime_error &e){
             std::cout << "Error:\n something went wrong during reading the configFile." << std::endl;
-            // return -1; 
             exit(1);
     }
     return 0;

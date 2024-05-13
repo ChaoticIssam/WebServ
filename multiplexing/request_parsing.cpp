@@ -1,25 +1,4 @@
 #include"webserve.hpp"
-bool		pars_http_version(std::string	HTTP_version){
-	std::string first, second;
-	size_t	pos1;
-
-	if(strncmp(HTTP_version.c_str(), "HTTP/", 5) == 0)
-	{
-		HTTP_version = HTTP_version.substr(5);
-		pos1 = HTTP_version.find(".");
-        if(pos1 != std::string::npos){
-            first = HTTP_version.substr(0, pos1);
-            second = HTTP_version.substr(pos1 + 1);
-            if(first.length() != 1 || second.length() != 1)
-                return false;
-            if(!isdigit(first[0]) || !isdigit(second[0]))
-                return false;
-            return true;
-        }
-        return false;
-	}
-	return(false);
-}
 
 int   request_line(std::map<int , Webserve>&multi_fd, Helpers *help, std::string temporaire){
 		int fd = help->events[help->i].data.fd;
@@ -35,8 +14,11 @@ int   request_line(std::map<int , Webserve>&multi_fd, Helpers *help, std::string
 				return (-1);
 			if(!getline(iss, multi_fd[fd].HTTP_version, '\r'))
 				return (-1);
-			if(!pars_http_version(multi_fd[fd].HTTP_version))
-				return -1;
+			if(multi_fd[fd].HTTP_version != "HTTP/1.1")
+				return(-1);
+			if( (multi_fd[fd].HTTP_method.size() + multi_fd[fd].request_URI.size() + multi_fd[fd].HTTP_version.size()) < pos0 - 2)
+				return(-1);
+
 			multi_fd[fd].flag = 1;
 		}
 		else
@@ -102,7 +84,7 @@ int    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string
 
 					if(multi_fd[fd].content_Length > _srv[help->server_index]._maxLength){
 						res._statusCode = "413";
-						res._message = "413 Request Entity Too Large";
+						res._message = "Request Entity Too Large";
 						res._contentType = "text/html";
 						res._Rpnse = true;
 						return (-1);
@@ -112,7 +94,10 @@ int    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string
 					multi_fd[fd].dec -= (temporaire.length());
 					multi_fd[fd].Body.append(temporaire.c_str(),temporaire.size());
 					if(multi_fd[fd].dec < 0)
+					{
 						multi_fd[fd].Body = multi_fd[fd].Body.substr(0, multi_fd[fd].content_Length);
+						multi_fd[fd].dec = 0;
+					}
 					if(multi_fd[fd].dec == 0){
 						multi_fd[fd].Body.append("\0");
 						create_the_request_file(multi_fd, help, res);
@@ -132,7 +117,7 @@ int    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string
 						multi_fd[fd].max_length += multi_fd[fd].chunk_len_dec;
 						if(multi_fd[fd].max_length > _srv[help->server_index]._maxLength){
 							res._statusCode = "413";
-							res._message = "413 Request Entity Too Large";
+							res._message = "Request Entity Too Large";
 							res._contentType = "text/html";
 							res._Rpnse = true;
 							return (-1);
@@ -141,6 +126,7 @@ int    get_headers(std::map<int , Webserve>&multi_fd, Helpers *help, std::string
 						multi_fd[fd].dec -= (temporaire.length());
 						multi_fd[fd].first_chunk.append(temporaire.c_str(),temporaire.size());
 						if(multi_fd[fd].dec <= 0){
+							multi_fd[fd].Body.append(multi_fd[fd].first_chunk.c_str(), multi_fd[fd].first_chunk.size());
 							multi_fd[fd].Body.append("\0");
 							create_the_request_file(multi_fd, help, res);
 							return 0;
@@ -164,7 +150,10 @@ int    get_Body_part(std::map<int , Webserve>&multi_fd, Helpers *help,char *buff
 			multi_fd[fd].Body.append(buff,multi_fd[fd].k);
 			multi_fd[fd].dec -= multi_fd[fd].k;
 			if(multi_fd[fd].dec < 0)
+			{
 				multi_fd[fd].Body = multi_fd[fd].Body.substr(0, multi_fd[fd].content_Length);
+				multi_fd[fd].dec = 0;
+			}
 			if(multi_fd[fd].dec <= 0){
 				multi_fd[fd].Body.append("\0");
 				create_the_request_file(multi_fd, help, res);
@@ -268,7 +257,7 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 		if(multi_fd[fd].flag != 1){
 			if(request_line(multi_fd, help, temporaire) == -1){
 				res._statusCode = "400";
-				res._message = "400 Bad Request";
+				res._message = "Bad Request";
 				res._contentType = "text/html";
 				res._Rpnse = true;
 				return ;
@@ -286,13 +275,13 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 			if(get_headers(multi_fd, help, temporaire, res) == -1){
 				if(!res._Rpnse){
 					res._statusCode = "400";
-					res._message = "400 Bad Request";
+					res._message = "Bad Request";
 					res._contentType = "text/html";
 					res._Rpnse = true;
 				}
 				if(!res._Method && !res._Rpnse){
 					res._statusCode = "404";
-					res._message = "404 Not Found";
+					res._message = "Not Found";
 					res._contentType = "text/html";
 				}
 				return ;
@@ -311,8 +300,8 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 	{
 		if(multi_fd[fd].postCheck == false)
 		{
-			res._statusCode = "404";
-			res._message = "404 Not Found";
+			res._statusCode = "403";
+			res._message = "Forbidden";
 			res._contentType = "text/html";
 			res._Rpnse = true;
 			return ;
@@ -320,7 +309,7 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 		if(multi_fd[fd].flag1 == 1)
 			if(get_Body_part(multi_fd, help, buff, res) == -1){
 				res._statusCode = "413";
-				res._message = "413 Request Entity Too Large";
+				res._message = "Request Entity Too Large";
 				res._contentType = "text/html";
 				res._Rpnse = true;
 				return ;
@@ -329,8 +318,8 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 	}
 	else if (multi_fd[fd].HTTP_method == "GET" && res._statusCode != "403") {
 		if(multi_fd[fd].getCheck == false){
-			res._statusCode = "501";
-			res._message = "Not Implemented";
+			res._statusCode = "403";
+			res._message = "Forbidden";
 			res._contentType = "text/html";
 			res._Rpnse = true;
 			return ;
@@ -340,13 +329,19 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 	}
 	else if (multi_fd[fd].HTTP_method == "DELETE") {
 		if(multi_fd[fd].deleteCheck == false){
-			res._statusCode = "404";
-				res._message = "404 Not Found";
-				res._contentType = "text/html";
-				res._Rpnse = true;
-				return ;
+			res._statusCode = "403";
+			res._message = "Forbidden";
+			res._contentType = "text/html";
+			res._Rpnse = true;
+			return ;
 		}
 		delete_method(multi_fd, fd, help, res);
+
+	}
+	else if (multi_fd[fd].HTTP_method == "HEAD"){
+		res._isHEADmethod = true;
+		res._Rpnse = true;
+		return;
 	}
 	else if (res._statusCode == "403" || res._isReturn){
 		res._Rpnse = true;
@@ -359,4 +354,5 @@ void    pars_request(Response &res, std::map<int , Webserve>&multi_fd, Helpers *
 		res._Rpnse = true;
 		return ;
 	}
+
 }

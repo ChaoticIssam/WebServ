@@ -127,6 +127,7 @@ int	Response::resourceType(){
 }
 
 void   Response::uriParss(std::map<int, Webserve>& multi_fd, int fd,Helpers* help, int serverIndex)   {
+	(void)help;
     size_t pos = multi_fd[fd].request_URI.find("?");
     _URI = multi_fd[fd].request_URI.substr(0, pos);
     _serverIndex = serverIndex;
@@ -144,13 +145,13 @@ void   Response::uriParss(std::map<int, Webserve>& multi_fd, int fd,Helpers* hel
 				_isReturn = 1;
 				return;
             }
-            else if (!(*it)._Index.empty() || !(*it)._rootDirectoryLocation.empty() || !help->obj._rootDirectory.empty()){
+            else if (!(*it)._Index.empty() || !(*it)._rootDirectoryLocation.empty() || !_srv[serverIndex]._rootDirectory.empty()){
                 std::string first = _URI;
                 _URI.clear();
                 if (!(*it)._rootDirectoryLocation.empty())
                     _URI = (*it)._rootDirectoryLocation + first;
-                else if (!help->obj._rootDirectory.empty())
-                    _URI = help->obj._rootDirectory + first;
+                else if (!_srv[serverIndex]._rootDirectory.empty())
+                    _URI = _srv[serverIndex]._rootDirectory + first;
                 if (!(*it)._Index.empty())
                     _URI += (*it)._Index;
 				else if ((*it)._autoIndex == 0){

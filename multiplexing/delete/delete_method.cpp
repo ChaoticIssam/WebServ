@@ -1,6 +1,3 @@
-// #include "delete_method.h"
-// #include <sys/stat.h>
-// #include <sys/types.h>
 #include "delete_method.h"
 
 char getLastElement(const char* str) {
@@ -40,21 +37,21 @@ void    remove_dir(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, cons
 				if (access(entry_path.c_str(), W_OK) == 0) {
 					if (unlink(entry_path.c_str()) == -1) {
 						res._statusCode = "400";
-						res._message = "400 Bad Request";
+						res._message = "Bad Request";
 						return ;
 					}
 				}
 				else {
 					res._statusCode = "403";
-					res._message = "403 Forbidden";
+					res._message = "Forbidden";
 				}
 			}
 		}
 	}
 	closedir(dir);
 	if (rmdir(path) == 0) {
-		res._statusCode = "200";
-		res._message = "200 Ok";
+		res._statusCode = "204";
+		res._message = "No Content";
 	}
 }
 
@@ -69,7 +66,7 @@ void    path_check(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Resp
 
 				if ( (access(path, W_OK)) || (access(path, X_OK)) ) {
 					res._statusCode = "403";
-					res._message = "403 Forbidden";
+					res._message = "Forbidden";
 				}
 				else {
 					remove_dir(multi_fd, fd, help, path, res);
@@ -80,22 +77,22 @@ void    path_check(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Resp
 
 				if (multi_fd[fd].resource[multi_fd[fd].resource.length() - 1] == '/') {
 					res._statusCode = "404";
-					res._message = "404 Not Found";
+					res._message = "Not Found";
 				}
 				else {
 					if (access(path, W_OK) == 0) { 
 						if (unlink(path) == -1) {
 							res._statusCode = "400";
-							res._message = "400 Bad Request";
+							res._message = "Bad Request";
 						}
 						else {
-							res._statusCode = "200";
-							res._message = "200 Ok";
+							res._statusCode = "204";
+							res._message = "No Content";
 						}
 					}
 					else {
 						res._statusCode = "403";
-						res._message = "403 Forbidden";	
+						res._message = "Forbidden";	
 					}
 				}
 
@@ -106,45 +103,47 @@ void    path_check(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Resp
 		}
 	}
 	else {
-		throw ResponseException("404", "404 Not Found");
+		throw ResponseException("404", "Not Found");
 	}
 }
 
 void	server_protection(std::map<int, Webserve>&multi_fd, int fd) {
 
 	if (multi_fd[fd].resource.find("/multiplexing") != std::string::npos)
-		throw ResponseException("403", "403 Forbidden");
+		throw ResponseException("403", "Forbidden");
 	if (multi_fd[fd].resource.find("/config") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
+		throw ResponseException("403", "Forbidden");
 	if (multi_fd[fd].resource.find("/cgi-bin") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
+		throw ResponseException("403", "Forbidden");
 	if (multi_fd[fd].resource.find("/cgi") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
+		throw ResponseException("403", "Forbidden");
 	if (multi_fd[fd].resource.find("/bin") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
-	if (multi_fd[fd].resource.find("/indexes") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
+		throw ResponseException("403", "Forbidden");
 	if (multi_fd[fd].resource.find("/get_method") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
+		throw ResponseException("403", "Forbidden");
 	if (multi_fd[fd].resource.find("/Response") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
-	if (multi_fd[fd].resource.find("/error") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
+		throw ResponseException("403", "Forbidden");
 	if (multi_fd[fd].resource.find("/Videos") != std::string::npos) 
-		throw ResponseException("403", "403 Forbidden");
+		throw ResponseException("403", "Forbidden");
+	if (multi_fd[fd].resource.find("/error") != std::string::npos) 
+		throw ResponseException("403", "Forbidden");
 }
 
 void    delete_method(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, Response& res) {
+	(void) help;
 	multi_fd[fd].resource = res._URI;
 	try
 	{
-		const char	*relative_path = "../";
+		const char	*relative_path = "./";
 		const char	*relative_path2 = res._URI.c_str();
 		char 		resolved_path[PATH_MAX];
 		char		resolved_path2[PATH_MAX];
 
 		char *result = realpath(relative_path, resolved_path);
 		char *result2 = realpath(relative_path2, resolved_path2);
+		if (access(resolved_path2, F_OK)) {
+			throw ResponseException ("404", "Not Found");
+		}
 		if (result != NULL && result2 != NULL) {
 			std::string path(resolved_path);
 			std::string urlPath(resolved_path2);
@@ -152,7 +151,7 @@ void    delete_method(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, R
 			urlPath += '/';
 
 			if( urlPath.find(path) == std::string::npos || path == urlPath) {
-				throw ResponseException ("403", "403 Forbidden");
+				throw ResponseException ("403", "Forbidden");
 			}
 		}
 		server_protection(multi_fd, fd);
@@ -164,5 +163,6 @@ void    delete_method(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, R
 		res._message = e.get_message();
 	}
 	res._contentType = "text/html";
+	res._errorfileGood = 0;
 	res._Rpnse = true;
 }

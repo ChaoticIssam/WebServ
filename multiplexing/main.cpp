@@ -4,11 +4,9 @@ int count = 0;
 
 int hexToDecimal(const std::string &hexStr)
 {
-	std::cout << hexStr << std::endl;
 	std::istringstream iss(hexStr);
 	int decimalValue;
 	iss >> std::hex >> decimalValue;
-	std::cout << decimalValue << std::endl;
 	return decimalValue;
 }
 
@@ -105,7 +103,7 @@ int creat_socket_and_epoll(Helpers *help)
 						std::cerr << "accept error" << std::endl;
 						continue;
 					}
-					multipl.events = EPOLLIN | EPOLLOUT;
+					multipl.events = EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP;
 					multipl.data.fd = client_socket;
 					epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_socket, &multipl);
 					multi_fd[help->events[help->i].data.fd] = Webserve();
@@ -175,14 +173,16 @@ int creat_socket_and_epoll(Helpers *help)
 					continue;
 				}
 				if(!(is_cgi(multi_fd, help->events[help->i].data.fd)) || (is_cgi(multi_fd, help->events[help->i].data.fd) && multi_fd[help->events[help->i].data.fd].res._listContent == 1))
+				{
+					multi_fd[help->events[help->i].data.fd].res._serverIndex = help->server_index;
 					multi_fd[help->events[help->i].data.fd].res.sendResponse(multi_fd, help->events[help->i].data.fd);
+				}
 			}
 			if (((double)(clock() - multi_fd[help->events[help->i].data.fd].time_out)) / CLOCKS_PER_SEC > 20)
 			{
 				multi_fd[help->events[help->i].data.fd].res._statusCode = "408";
 				multi_fd[help->events[help->i].data.fd].res._message = "408 Request Timeout";
 				multi_fd[help->events[help->i].data.fd].res._contentType = "text/html";
-				multi_fd[help->events[help->i].data.fd].res._serverIndex = help->server_index;
 				multi_fd[help->events[help->i].data.fd].res.sendResponse(multi_fd, help->events[help->i].data.fd);
 				epoll_ctl(epoll_fd, EPOLL_CTL_DEL, help->events[help->i].data.fd, &multipl);
 				close(help->events[help->i].data.fd);

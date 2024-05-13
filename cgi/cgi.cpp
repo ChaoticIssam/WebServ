@@ -77,8 +77,8 @@ int	cgi::locationMatch(std::map<int, Webserve>&multi_fd, int fd, Helpers *help, 
 				if (it->on_off == "on") {
 					if (multi_fd[fd].extension == ".php") {
 						if (!it->_cgiPath[".php"].empty()) {
-							this->cgi_path = get_absolute_path(it->_cgiPath[".php"]);
-							std::string realPath = get_absolute_path("../bin/php-cgi");
+							this->cgi_path = "." + it->_cgiPath[".php"];
+							std::string realPath = "./bin/php-cgi";
 							if (this->cgi_path != realPath) { 
 								throw ResponseException("501", "501 Internal Server Error");
 							}
@@ -202,7 +202,12 @@ void child_exec(int client_fd, std::map<int, Webserve> &multi_fd)
 			close (fd1);
 			return ;
 		}
-		read(fd, buffer, buffer_size);
+		ssize_t bytesRead = read(fd, buffer, buffer_size);
+		if (bytesRead == -1){
+			close (fd);
+			close (fd1);
+			return ;
+		}
 		dup2(fd1, 0);
 		close (fd);
 	}

@@ -17,6 +17,7 @@ Response::Response(){
 	_fileSize = 0;
 	_isReturn = 0;
 	_Rpnse = false;
+	_isHEADmethod = false;
 	// _responseBUFFER = NULL;
 	convertExtention();
 }
@@ -48,7 +49,7 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 		return;
 	}
 	if ((_statusCode == "404" || _statusCode == "403" || _statusCode == "408" || _statusCode == "500"
-			|| _statusCode == "501" || _statusCode == "400" || _statusCode == "508" || _statusCode == "413"
+			|| _statusCode == "501" || _statusCode == "400" || _statusCode == "508" || _statusCode == "413" || _statusCode == "204"
 			|| (_statusCode == "201" && multi_fd[fd].response_success == true)) && !_errorfileGood) {
 		std::map<int, std::string>::iterator it = _srv[_serverIndex].errorHolder.find(atoi(_statusCode.c_str()));
 		if (it != _srv[_serverIndex].errorHolder.end()){
@@ -101,7 +102,6 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 			close(fd);
 			return ;
 		}
-		// file found
 		if (_statusCode == "200" && !_isDirectory){
 			_file.seekg(0, std::ios::end);
 			std::streampos fileSize = _file.tellg();
@@ -137,7 +137,6 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 			std::ostringstream chunkHeader;
 			chunkHeader << std::hex << bytesRead << "\r\n";
 			std::string chunkHeaderStr = chunkHeader.str();
-
 			if (send(fd, chunkHeaderStr.c_str(), chunkHeaderStr.size(), 0) == -1) {
 				close(fd);
 				epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, NULL);
@@ -157,7 +156,6 @@ void Response::sendResponse(std::map<int, Webserve>&multi_fd ,int fd){
 				multi_fd.erase(fd);
 				return;
 			}
-
 			if (bytesRead < BUFFER_SIZE)
 				_file.seekg(-bytesRead, std::ios::cur);
 		}
@@ -179,7 +177,6 @@ int	timeoutRes(std::string message, std::string status, int fd, std::map<int, We
 	std::string response; 
 	std::ostringstream response_stream;
 	char buffer[4096];
-	std::cout << "message: " << message << " , status: " << status << std::endl;
 	std::map<int, std::string>::iterator it = _srv[res._serverIndex].errorHolder.find(atoi(status.c_str()));
 	if (it != _srv[res._serverIndex].errorHolder.end()){
 		res._URI = _srv[res._serverIndex].errorHolder[atoi(status.c_str())];
@@ -196,7 +193,6 @@ int	timeoutRes(std::string message, std::string status, int fd, std::map<int, We
 		response += "Content-Length: " + size_tToString(body.size()) + "\r\n";
 		response += "\r\n";
 		response += body;
-		std::cout << "here is the response: " << response.c_str() << std::endl;
 		if(send(fd, response.c_str(), response.size(), 0) == -1)
 			std::cerr << "send response failed ." << std::endl;
 		close(fd);
